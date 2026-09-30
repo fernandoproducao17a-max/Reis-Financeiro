@@ -22,6 +22,9 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions ORDER BY createdAt DESC")
     fun observeAll(): Flow<List<Transaction>>
 
+    @Query("SELECT * FROM transactions ORDER BY createdAt DESC")
+    suspend fun getAll(): List<Transaction>
+
     @Query("SELECT * FROM transactions WHERE createdAt BETWEEN :start AND :end ORDER BY createdAt DESC")
     fun observeBetween(start: Long, end: Long): Flow<List<Transaction>>
 
