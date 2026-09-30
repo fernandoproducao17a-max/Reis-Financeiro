@@ -32,6 +32,10 @@ Kotlin + Jetpack Compose + Room + Android SpeechRecognizer.
 
 O banco é local para que os lançamentos continuem disponíveis sem depender de internet.
 
+## Atalho e Assistente
+
+O app também registra um atalho de “Novo lançamento” para o launcher/assistente compatível. Isso permite iniciar rapidamente o fluxo de voz. A disponibilidade de invocação por voz depende do Android/assistente e da configuração do aparelho.
+
 ## Ativação por “Reis”
 
 A palavra-chave fora do aplicativo depende dos mecanismos oficiais do Android/assistente e das permissões disponíveis no aparelho. O app não mantém o microfone permanentemente ativo por conta própria.
