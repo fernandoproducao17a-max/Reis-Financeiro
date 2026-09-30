@@ -25,6 +25,13 @@ class VoiceCommandParserTest {
     }
 
     @Test
+    fun parsesSpokenThousands() {
+        val result = VoiceCommandParser.parse("Recebi 3 mil reais de salário")
+        assertNotNull(result)
+        assertEquals(300000L, result!!.transaction.amountCents)
+    }
+
+    @Test
     fun parsesBrazilianThousands() {
         val result = VoiceCommandParser.parse("Paguei 1.250,50 de energia")
         assertNotNull(result)
