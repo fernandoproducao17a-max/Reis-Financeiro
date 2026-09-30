@@ -1,18 +1,41 @@
 # Reis Financeiro
 
-Aplicativo Android de controle financeiro pessoal com lançamentos por voz.
+Aplicativo Android de controle financeiro pessoal, com lançamento manual e por voz em português do Brasil.
 
-## Visão
+## Já implementado
 
-- Entradas e saídas financeiras
-- Categorias, incluindo combustível
-- Dashboard com saldo e totais
-- Histórico e filtros
-- Lançamento por linguagem natural
-- Identidade visual Reis Financeiro
+- Dashboard com saldo atual
+- Valor inicial configurável e editável
+- Entradas e saídas
+- Banco local com Room
+- Histórico de lançamentos
+- Edição e exclusão
+- Filtros por tipo e categorias principais
+- Relatório resumido
+- Gastos agrupados por categoria
+- Categorias financeiras comuns
+- Comandos por voz em pt-BR
+- Valores como 1.250,50 e “3 mil reais”
+- Identidade visual e ícone Reis
+- GitHub Actions para gerar APK debug
 
-## Tecnologia
+## Exemplos de voz
+
+- “Gastei 100 reais de combustível”
+- “Paguei 1.250,50 de energia”
+- “Recebi 3 mil reais de salário”
+- “Comprei 80 reais no mercado”
+
+## Arquitetura
 
 Kotlin + Jetpack Compose + Room + Android SpeechRecognizer.
 
-> A ativação por palavra-chave fora do aplicativo depende das APIs e permissões do Android/assistente; o app não promete microfone sempre ativo em segundo plano.
+O banco é local para que os lançamentos continuem disponíveis sem depender de internet.
+
+## Ativação por “Reis”
+
+A palavra-chave fora do aplicativo depende dos mecanismos oficiais do Android/assistente e das permissões disponíveis no aparelho. O app não mantém o microfone permanentemente ativo por conta própria.
+
+## Build
+
+O workflow `.github/workflows/android.yml` gera um APK debug em pushes na branch `main` e disponibiliza o APK como artefato do GitHub Actions.
