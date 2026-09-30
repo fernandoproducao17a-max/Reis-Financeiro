@@ -40,6 +40,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         database = Room.databaseBuilder(applicationContext, ReisDatabase::class.java, "reis-financeiro.db").addMigrations(MIGRATION_1_2).build()
         setContent { ReisApp(database) }
+        if (intent.getStringExtra("reis_action") == "novo_lancamento") {
+            window.decorView.post { requestVoice() }
+        }
     }
 
     @Composable
