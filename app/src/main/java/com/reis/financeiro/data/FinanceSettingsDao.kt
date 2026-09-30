@@ -11,6 +11,9 @@ interface FinanceSettingsDao {
     @Query("SELECT * FROM finance_settings WHERE id = 1")
     fun observe(): Flow<FinanceSettings?>
 
+    @Query("SELECT * FROM finance_settings WHERE id = 1")
+    suspend fun get(): FinanceSettings?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun save(settings: FinanceSettings)
 }
