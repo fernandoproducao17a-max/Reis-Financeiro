@@ -9,6 +9,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.contract.ActivityResultContracts.CreateDocument
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -35,6 +36,19 @@ private val MIGRATION_1_2 = object : Migration(1, 2) {
 class MainActivity : ComponentActivity() {
     private lateinit var database: ReisDatabase
     private val audioPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { if (it) startVoiceInput() }
+    private val exportBackup = registerForActivityResult(CreateDocument("application/json")) { uri ->
+        if (uri != null) {
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val json = com.reis.financeiro.data.transactionsToJson(database.transactionDao().getAll(), database.settingsDao().get()?.initialBalanceCents ?: 0L)
+                    contentResolver.openOutputStream(uri)?.use { it.write(json.toByteArray(Charsets.UTF_8)) }
+                    runOnUiThread { Toast.makeText(this@MainActivity, "Backup exportado.", Toast.LENGTH_LONG).show() }
+                } catch (_: Exception) {
+                    runOnUiThread { Toast.makeText(this@MainActivity, "Não foi possível exportar o backup.", Toast.LENGTH_LONG).show() }
+                }
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -75,7 +89,7 @@ class MainActivity : ComponentActivity() {
                     when (tab) {
                         0 -> DashboardScreen(transactions, initial, income, expense, { showInitial = true }, { editing = null; showForm = true }, { editing = it; showForm = true }, { scope.launch { dao.delete(it) } })
                         1 -> HistoryScreen(transactions, { editing = it; showForm = true }, { scope.launch { dao.delete(it) } })
-                        else -> ReportsScreen(transactions, income, expense)
+                        else -> ReportsScreen(transactions, income, expense, { exportBackup.launch("reis-financeiro-backup.json") })
                     }
                 }
             }
