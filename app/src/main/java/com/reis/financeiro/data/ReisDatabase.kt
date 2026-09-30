@@ -10,8 +10,9 @@ class ReisConverters {
     @TypeConverter fun toType(value: String): TransactionType = TransactionType.valueOf(value)
 }
 
-@Database(entities = [Transaction::class], version = 1, exportSchema = false)
+@Database(entities = [Transaction::class, FinanceSettings::class], version = 2, exportSchema = false)
 @TypeConverters(ReisConverters::class)
 abstract class ReisDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
+    abstract fun settingsDao(): FinanceSettingsDao
 }
