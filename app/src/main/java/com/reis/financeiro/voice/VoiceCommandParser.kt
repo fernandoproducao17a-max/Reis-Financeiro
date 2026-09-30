@@ -16,9 +16,14 @@ object VoiceCommandParser {
 
     fun parse(text: String): ParsedVoiceCommand? {
         val normalized = text.lowercase().trim()
-        val match = amountRegex.find(normalized) ?: return null
-        val raw = match.groupValues[1].replace(".", "").replace(",", ".")
-        val amount = raw.toDoubleOrNull() ?: return null
+        val thousandMatch = Regex("""(\\d+(?:,\\d+)?)\\s*mil""").find(normalized)
+        val match = amountRegex.find(normalized)
+        val amount = if (thousandMatch != null) {
+            (thousandMatch.groupValues[1].replace(",", ".").toDoubleOrNull() ?: return null) * 1000.0
+        } else {
+            val raw = match?.groupValues?.get(1)?.replace(".", "")?.replace(",", ".") ?: return null
+            raw.toDoubleOrNull() ?: return null
+        }
         if (amount <= 0) return null
 
         val income = listOf("recebi", "ganhei", "entrou", "salário", "salario", "renda", "caiu")
