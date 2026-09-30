@@ -16,7 +16,7 @@ object VoiceCommandParser {
 
     fun parse(text: String): ParsedVoiceCommand? {
         val normalized = text.lowercase().trim()
-        val thousandMatch = Regex("""(\\d+(?:,\\d+)?)\\s*mil""").find(normalized)
+        val thousandMatch = Regex("""(\d+(?:,\d+)?)\s*mil""").find(normalized)
         val match = amountRegex.find(normalized)
         val amount = if (thousandMatch != null) {
             (thousandMatch.groupValues[1].replace(",", ".").toDoubleOrNull() ?: return null) * 1000.0
