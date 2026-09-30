@@ -1,0 +1,140 @@
+package com.reis.financeiro.ui
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.reis.financeiro.data.*
+import com.reis.financeiro.util.toBrl
+import com.reis.financeiro.util.toCentsOrNull
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+@Composable
+fun DashboardScreen(
+    transactions: List<Transaction>,
+    initial: Long,
+    income: Long,
+    expense: Long,
+    onInitial: () -> Unit,
+    onNew: () -> Unit,
+    onEdit: (Transaction) -> Unit,
+    onDelete: (Transaction) -> Unit
+) {
+    val balance = initial + income - expense
+    Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Text("REIS FINANCEIRO", style = MaterialTheme.typography.headlineMedium, color = Color(0xFFFFC72C), fontWeight = FontWeight.Bold)
+        Text("Sua vida financeira na sua voz", color = Color.LightGray)
+        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF17171A)), modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(20.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("Saldo atual", color = Color.LightGray)
+                    TextButton(onClick = onInitial) { Text("Valor inicial") }
+                }
+                Text(balance.toBrl(), style = MaterialTheme.typography.displaySmall, color = Color.White, fontWeight = FontWeight.Bold)
+                Text("Inicial: " + initial.toBrl(), color = Color.Gray)
+                Spacer(Modifier.height(12.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("↑ " + income.toBrl(), color = Color(0xFF18D66B))
+                    Text("↓ " + expense.toBrl(), color = Color(0xFFFF6B6B))
+                }
+            }
+        }
+        Button(onClick = onNew, modifier = Modifier.fillMaxWidth()) { Text("＋ Novo lançamento") }
+        Text("Últimos lançamentos", color = Color.White, style = MaterialTheme.typography.titleMedium)
+        if (transactions.isEmpty()) Text("Nenhum lançamento ainda. Use o microfone ou adicione manualmente.", color = Color.Gray)
+        else LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            items(transactions.take(8), key = { it.id }) { TransactionRow(it, onEdit, onDelete) }
+        }
+    }
+}
+
+@Composable
+fun HistoryScreen(transactions: List<Transaction>, onEdit: (Transaction) -> Unit, onDelete: (Transaction) -> Unit) {
+    var filter by remember { mutableStateOf("Todos") }
+    val filters = listOf("Todos", "Entradas", "Saídas", "Combustível", "Mercado", "Moradia")
+    val filtered = transactions.filter {
+        filter == "Todos" || (filter == "Entradas" && it.type == TransactionType.INCOME) ||
+        (filter == "Saídas" && it.type == TransactionType.EXPENSE) || it.category == filter
+    }
+    Column(Modifier.fillMaxSize().padding(20.dp)) {
+        Text("Lançamentos", style = MaterialTheme.typography.headlineSmall, color = Color(0xFFFFC72C), fontWeight = FontWeight.Bold)
+        Row(Modifier.padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            filters.forEach { label -> FilterChip(selected = filter == label, onClick = { filter = label }, label = { Text(label) }) }
+        }
+        if (filtered.isEmpty()) Text("Nenhum lançamento encontrado.", color = Color.Gray)
+        else LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) { items(filtered, key = { it.id }) { TransactionRow(it, onEdit, onDelete) } }
+    }
+}
+
+@Composable
+fun ReportsScreen(transactions: List<Transaction>, income: Long, expense: Long) {
+    val byCategory = transactions.filter { it.type == TransactionType.EXPENSE }.groupBy { it.category }
+        .mapValues { entry -> entry.value.sumOf { it.amountCents } }.toList().sortedByDescending { it.second }
+    Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Text("Relatórios", style = MaterialTheme.typography.headlineSmall, color = Color(0xFFFFC72C), fontWeight = FontWeight.Bold)
+        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF17171A)), modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Resumo", color = Color.White, style = MaterialTheme.typography.titleMedium)
+                Text("Entradas: " + income.toBrl(), color = Color(0xFF18D66B))
+                Text("Saídas: " + expense.toBrl(), color = Color(0xFFFF6B6B))
+                Text("Movimentado: " + (income + expense).toBrl(), color = Color.LightGray)
+            }
+        }
+        Text("Gastos por categoria", color = Color.White, style = MaterialTheme.typography.titleMedium)
+        if (byCategory.isEmpty()) Text("Ainda não há despesas.", color = Color.Gray)
+        else byCategory.forEach { (category, value) -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(category, color = Color.White); Text(value.toBrl(), color = Color(0xFFFF6B6B)) } }
+    }
+}
+
+@Composable
+fun TransactionRow(transaction: Transaction, onEdit: (Transaction) -> Unit, onDelete: (Transaction) -> Unit) {
+    var confirm by remember { mutableStateOf(false) }
+    val positive = transaction.type == TransactionType.INCOME
+    Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF17171A)), modifier = Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(transaction.category, color = Color.White, fontWeight = FontWeight.SemiBold)
+                Text(transaction.description.ifBlank { "Sem descrição" }, color = Color.Gray, maxLines = 1)
+                Text(SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("pt", "BR")).format(Date(transaction.createdAt)), color = Color.DarkGray)
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text((if (positive) "+ " else "- ") + transaction.amountCents.toBrl(), color = if (positive) Color(0xFF18D66B) else Color(0xFFFF6B6B))
+                Row { TextButton(onClick = { onEdit(transaction) }) { Text("Editar") }; TextButton(onClick = { confirm = true }) { Text("Excluir", color = Color(0xFFFF6B6B)) } }
+            }
+        }
+    }
+    if (confirm) AlertDialog(onDismissRequest = { confirm = false }, title = { Text("Excluir lançamento?") }, text = { Text("Essa ação não pode ser desfeita.") }, confirmButton = { TextButton(onClick = { onDelete(transaction); confirm = false }) { Text("Excluir") } }, dismissButton = { TextButton(onClick = { confirm = false }) { Text("Cancelar") } })
+}
+
+@Composable
+fun TransactionDialog(existing: Transaction?, onDismiss: () -> Unit, onSave: (Transaction) -> Unit) {
+    var type by remember { mutableStateOf(existing?.type ?: TransactionType.EXPENSE) }
+    var amount by remember { mutableStateOf(existing?.amountCents?.toBrl()?.replace("R$", "")?.trim() ?: "") }
+    var category by remember { mutableStateOf(existing?.category ?: "Outros") }
+    var description by remember { mutableStateOf(existing?.description ?: "") }
+    AlertDialog(onDismissRequest = onDismiss, title = { Text(if (existing == null) "Novo lançamento" else "Editar lançamento") }, text = {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(selected = type == TransactionType.EXPENSE, onClick = { type = TransactionType.EXPENSE }, label = { Text("Saída") })
+                FilterChip(selected = type == TransactionType.INCOME, onClick = { type = TransactionType.INCOME }, label = { Text("Entrada") })
+            }
+            OutlinedTextField(value = amount, onValueChange = { amount = it }, label = { Text("Valor") }, prefix = { Text("R$ ") }, singleLine = true)
+            OutlinedTextField(value = category, onValueChange = { category = it }, label = { Text("Categoria") }, singleLine = true)
+            OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Descrição") }, singleLine = true)
+        }
+    }, confirmButton = { TextButton(onClick = { amount.toCentsOrNull()?.takeIf { it > 0 }?.let { cents -> onSave(Transaction(existing?.id ?: 0L, type, cents, category.ifBlank { "Outros" }, description, existing?.createdAt ?: System.currentTimeMillis())) } }) { Text("Salvar") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } })
+}
+
+@Composable
+fun InitialBalanceDialog(currentCents: Long, onDismiss: () -> Unit, onSave: (Long) -> Unit) {
+    var value by remember { mutableStateOf(if (currentCents == 0L) "" else "%.2f".format(currentCents / 100.0)) }
+    AlertDialog(onDismissRequest = onDismiss, title = { Text("Valor inicial") }, text = { OutlinedTextField(value = value, onValueChange = { value = it }, label = { Text("Com quanto você começou?") }, prefix = { Text("R$ ") }, singleLine = true) }, confirmButton = { TextButton(onClick = { value.toCentsOrNull()?.takeIf { it >= 0 }?.let(onSave) }) { Text("Salvar") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } })
+}
