@@ -179,7 +179,7 @@ class MainActivity : FragmentActivity() {
                 }
             }
             if (showPrivacy) PrivacySettingsDialog(settings?.appLockEnabled == true, { showPrivacy = false }) { enabled -> scope.launch { settingsDao.save(FinanceSettings(initialBalanceCents = initial, appLockEnabled = enabled)) } }
-            if (showInitial) InitialBalanceDialog(initial, { showInitial = false }) { value -> scope.launch { settingsDao.save(FinanceSettings(initialBalanceCents = value)) }; showInitial = false }
+            if (showInitial) InitialBalanceDialog(initial, { showInitial = false }) { value -> scope.launch { settingsDao.save(FinanceSettings(initialBalanceCents = value, appLockEnabled = settings?.appLockEnabled == true)) }; showInitial = false }
             if (showForm) TransactionDialog(editing, { showForm = false }) { transaction -> scope.launch { if (transaction.id == 0L) dao.insert(transaction) else dao.update(transaction) }; showForm = false }
         }
     }
@@ -289,5 +289,4 @@ class MainActivity : FragmentActivity() {
             Toast.makeText(this, "Não foi possível iniciar a escuta do microfone.", Toast.LENGTH_LONG).show()
         }
     }
-    }
-}
+ 
