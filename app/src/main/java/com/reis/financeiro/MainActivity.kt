@@ -176,13 +176,10 @@ class MainActivity : FragmentActivity() {
                             labels.forEachIndexed { index, item -> NavigationBarItem(selected = tab == index, onClick = { tab = index }, icon = { Text(item.first) }, label = { Text(item.second) }) }
                         }
                     },
-                    floatingActionButton = {
-                        ExtendedFloatingActionButton(onClick = { requestVoice() }, icon = { Text("🎙") }, text = { Text("Lançar por voz", fontWeight = FontWeight.Bold) }, containerColor = Color(0xFFFFC72C), contentColor = Color.Black)
-                    }
                 ) { padding ->
                     Box(Modifier.fillMaxSize().padding(padding)) {
                         when (tab) {
-                            0 -> DashboardScreen(transactions, initial, income, expense, { showInitial = true }, { editing = null; showForm = true }, { editing = it; showForm = true }, { scope.launch { dao.delete(it) } })
+                            0 -> DashboardScreen(transactions, initial, income, expense, { showInitial = true }, { editing = null; showForm = true }, { editing = it; showForm = true }, { scope.launch { dao.delete(it) } }, { requestVoice() })
                             1 -> HistoryScreen(transactions, { editing = it; showForm = true }, { scope.launch { dao.delete(it) } })
                             else -> ReportsScreen(transactions, income, expense, { exportBackup.launch("reis-financeiro-backup.json") }, { importBackup.launch(arrayOf("application/json", "text/json", "text/plain")) })
                         }
