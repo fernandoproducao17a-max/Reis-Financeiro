@@ -36,6 +36,26 @@ private val MIGRATION_1_2 = object : Migration(1, 2) {
 class MainActivity : ComponentActivity() {
     private lateinit var database: ReisDatabase
     private val audioPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { if (it) startVoiceInput() }
+    private val importBackup = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val json = contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
+                        ?: throw IllegalStateException("Arquivo vazio")
+                    val backup = parseBackup(json)
+                    database.runInTransaction {
+                        database.transactionDao().deleteAll()
+                        backup.transactions.forEach { database.transactionDao().insert(it) }
+                        database.settingsDao().save(FinanceSettings(initialBalanceCents = backup.initialBalanceCents))
+                    }
+                    runOnUiThread { Toast.makeText(this@MainActivity, "Backup restaurado: ${backup.transactions.size} lançamentos.", Toast.LENGTH_LONG).show() }
+                } catch (_: Exception) {
+                    runOnUiThread { Toast.makeText(this@MainActivity, "Backup inválido ou não foi possível restaurar.", Toast.LENGTH_LONG).show() }
+                }
+            }
+        }
+    }
+
     private val exportBackup = registerForActivityResult(CreateDocument("application/json")) { uri ->
         if (uri != null) {
             CoroutineScope(Dispatchers.IO).launch {
@@ -89,7 +109,7 @@ class MainActivity : ComponentActivity() {
                     when (tab) {
                         0 -> DashboardScreen(transactions, initial, income, expense, { showInitial = true }, { editing = null; showForm = true }, { editing = it; showForm = true }, { scope.launch { dao.delete(it) } })
                         1 -> HistoryScreen(transactions, { editing = it; showForm = true }, { scope.launch { dao.delete(it) } })
-                        else -> ReportsScreen(transactions, income, expense, { exportBackup.launch("reis-financeiro-backup.json") })
+                        else -> ReportsScreen(transactions, income, expense, { exportBackup.launch("reis-financeiro-backup.json") }, { importBackup.launch(arrayOf("application/json", "text/json", "text/plain")) })
                     }
                 }
             }
