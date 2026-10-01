@@ -52,7 +52,7 @@ class MainActivity : ComponentActivity() {
                     database.withTransaction {
                         database.transactionDao().deleteAll()
                         backup.transactions.forEach { database.transactionDao().insert(it) }
-                        database.settingsDao().save(FinanceSettings(initialBalanceCents = backup.initialBalanceCents))
+                        database.settingsDao().save(FinanceSettings(initialBalanceCents = backup.initialBalanceCents, appLockEnabled = database.settingsDao().get()?.appLockEnabled ?: false))
                     }
                     runOnUiThread { Toast.makeText(this@MainActivity, "Backup restaurado: ${backup.transactions.size} lançamentos.", Toast.LENGTH_LONG).show() }
                 } catch (_: Exception) {
