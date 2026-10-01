@@ -66,82 +66,70 @@ fun ReisDrawerItem(icon: String, label: String, selected: Boolean, onClick: () -
 }
 
 @Composable
+@Composable
 fun DashboardScreen(
-    transactions: List<Transaction>,
-    initial: Long,
-    income: Long,
-    expense: Long,
-    onInitial: () -> Unit,
-    onNew: () -> Unit,
-    onEdit: (Transaction) -> Unit,
-    onDelete: (Transaction) -> Unit
+    transactions: List<Transaction>, initial: Long, income: Long, expense: Long,
+    onInitial: () -> Unit, onNew: () -> Unit, onEdit: (Transaction) -> Unit, onDelete: (Transaction) -> Unit
 ) {
     val balance = initial + income - expense
     var valuesVisible by remember { mutableStateOf(false) }
-    val byCategory = transactions.filter { it.type == TransactionType.EXPENSE }
-        .groupBy { it.category }
-        .mapValues { it.value.sumOf { tx -> tx.amountCents } }
-        .toList()
-        .sortedByDescending { it.second }
-        .take(4)
-
+    val byCategory = transactions.filter { it.type == TransactionType.EXPENSE }.groupBy { it.category }
+        .mapValues { it.value.sumOf { tx -> tx.amountCents } }.toList().sortedByDescending { it.second }.take(5)
     Column(Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("Olá! 👋", color = Color.Gray, style = MaterialTheme.typography.bodyMedium)
-                Text("Visão geral", color = Color.White, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            }
-            Surface(shape = RoundedCornerShape(14.dp), color = Color(0xFF17171A)) {
-                Text("● Seguro", color = Color(0xFF18D66B), modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), style = MaterialTheme.typography.labelMedium)
-            }
-        }
-
-        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF17171A)), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp)) {
-            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("Saldo disponível", color = Color.LightGray)
-                    TextButton(onClick = { valuesVisible = !valuesVisible }) { Text(if (valuesVisible) "Ocultar" else "Mostrar", color = ReisGold) }
+        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF151519)), shape = RoundedCornerShape(26.dp), modifier = Modifier.fillMaxWidth()) {
+            Row(Modifier.fillMaxWidth().padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
+                Image(painterResource(com.reis.financeiro.R.drawable.ic_reis_logo), "REIS", Modifier.size(68.dp))
+                Spacer(Modifier.width(14.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("REIS FINANCEIRO", color = ReisGold, fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
+                    Text("Sua vida financeira na sua voz", color = Color.White, style = MaterialTheme.typography.bodySmall)
                 }
-                Text(hiddenValue(balance, valuesVisible), style = MaterialTheme.typography.displaySmall, color = Color.White, fontWeight = FontWeight.ExtraBold)
-                Text("Saldo inicial: " + hiddenValue(initial, valuesVisible), color = Color.Gray)
+                TextButton(onClick = { valuesVisible = !valuesVisible }) { Text(if (valuesVisible) "Ocultar" else "Mostrar", color = ReisGold) }
             }
         }
-
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Column { Text("Visão geral", color = Color.White, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold); Text("Resumo financeiro", color = Color.Gray) }
+            Text("● Protegido", color = Color(0xFF18D66B), style = MaterialTheme.typography.labelMedium)
+        }
+        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1B1913)), shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(20.dp)) {
+                Text("Saldo disponível", color = Color.LightGray)
+                Text(hiddenValue(balance, valuesVisible), color = Color.White, style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.ExtraBold)
+                Text("Inicial: " + hiddenValue(initial, valuesVisible), color = Color.Gray)
+            }
+        }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             FinanceMetricCard("Entradas", income, Color(0xFF18D66B), valuesVisible, Modifier.weight(1f))
             FinanceMetricCard("Saídas", expense, Color(0xFFFF6B6B), valuesVisible, Modifier.weight(1f))
         }
-
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Button(onClick = onNew, modifier = Modifier.weight(1f), shape = RoundedCornerShape(16.dp)) { Text("＋ Lançamento") }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = onNew, modifier = Modifier.weight(1f), shape = RoundedCornerShape(16.dp)) { Text("＋ Novo") }
             OutlinedButton(onClick = onInitial, modifier = Modifier.weight(1f), shape = RoundedCornerShape(16.dp)) { Text("Saldo inicial") }
         }
-
         if (byCategory.isNotEmpty()) {
-            Text("Maiores gastos", color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("Onde seu dinheiro está saindo", color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            val maxValue = byCategory.maxOf { it.second }.coerceAtLeast(1L)
             byCategory.forEach { (category, value) ->
-                Row(Modifier.fillMaxWidth().background(Color(0xFF141417), RoundedCornerShape(14.dp)).padding(13.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(category, color = Color.White)
-                    Text(hiddenValue(value, valuesVisible), color = Color(0xFFFF6B6B), fontWeight = FontWeight.SemiBold)
+                Column(Modifier.fillMaxWidth().background(Color(0xFF141417), RoundedCornerShape(14.dp)).padding(12.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(category, color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Text(hiddenValue(value, valuesVisible), color = Color(0xFFFF6B6B))
+                    }
+                    if (valuesVisible) LinearProgressIndicator(progress = { value.toFloat() / maxValue.toFloat() }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), color = ReisGold, trackColor = Color(0xFF303035))
                 }
             }
         }
-
         Text("Últimos lançamentos", color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        if (transactions.isEmpty()) Text("Comece pelo microfone ou pelo botão de lançamento.", color = Color.Gray)
-        else LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
-            items(transactions.take(8), key = { it.id }) { TransactionRow(it, onEdit, onDelete, valuesVisible) }
-        }
-    }
-}
-
-@Composable
-private fun FinanceMetricCard(title: String, value: Long, accent: Color, visible: Boolean, modifier: Modifier = Modifier) {
-    Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF17171A)), modifier = modifier, shape = RoundedCornerShape(18.dp)) {
-        Column(Modifier.padding(15.dp)) {
-            Text(title, color = Color.Gray, style = MaterialTheme.typography.labelMedium)
-            Spacer(Modifier.height(5.dp))
-            Text(hiddenValue(value, visible), color = accent, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
+        if (transactions.isEmpty()) {
+            Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF151519)), modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("🎙️", style = MaterialTheme.typography.displaySmall)
+                    Text("Seu primeiro lançamento começa aqui", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("Use o botão de voz ou o menu para registrar uma entrada ou saída.", color = Color.Gray)
+                }
+            }
+        } else LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
+            items(transactions.take(6), key = { it.id }) { TransactionRow(it, onEdit, onDelete, valuesVisible) }
         }
     }
 }
@@ -152,33 +140,35 @@ fun HistoryScreen(transactions: List<Transaction>, onEdit: (Transaction) -> Unit
     var search by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf("Todos") }
     var period by remember { mutableStateOf("Todos") }
-    val filters = listOf("Todos", "Entradas", "Saídas", "Combustível", "Mercado", "Moradia")
     val periodStart = when (period) {
-        "Hoje" -> Calendar.getInstance().apply { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }.timeInMillis
-        "7 dias" -> System.currentTimeMillis() - 7L * 24 * 60 * 60 * 1000
-        "Este mês" -> Calendar.getInstance().apply { set(Calendar.DAY_OF_MONTH, 1); set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }.timeInMillis
+        "Hoje" -> Calendar.getInstance().apply { set(Calendar.HOUR_OF_DAY,0);set(Calendar.MINUTE,0);set(Calendar.SECOND,0);set(Calendar.MILLISECOND,0) }.timeInMillis
+        "7 dias" -> System.currentTimeMillis() - 7L*24*60*60*1000
+        "Este mês" -> Calendar.getInstance().apply { set(Calendar.DAY_OF_MONTH,1);set(Calendar.HOUR_OF_DAY,0);set(Calendar.MINUTE,0);set(Calendar.SECOND,0);set(Calendar.MILLISECOND,0) }.timeInMillis
         else -> 0L
     }
     val filtered = transactions.filter {
-        val typeMatches = filter == "Todos" || (filter == "Entradas" && it.type == TransactionType.INCOME) ||
-            (filter == "Saídas" && it.type == TransactionType.EXPENSE) || it.category == filter
-        typeMatches && it.createdAt >= periodStart
+        val query = search.trim().lowercase()
+        val typeOk = filter == "Todos" || (filter == "Entradas" && it.type == TransactionType.INCOME) || (filter == "Saídas" && it.type == TransactionType.EXPENSE) || it.category == filter
+        val textOk = query.isBlank() || it.category.lowercase().contains(query) || it.description.lowercase().contains(query)
+        typeOk && textOk && it.createdAt >= periodStart
     }
-    Column(Modifier.fillMaxSize().padding(20.dp)) {
+    Column(Modifier.fillMaxSize().padding(18.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("Lançamentos", style = MaterialTheme.typography.headlineSmall, color = Color(0xFFFFC72C), fontWeight = FontWeight.Bold)
-            TextButton(onClick = { valuesVisible = !valuesVisible }) { Text(if (valuesVisible) "Ocultar" else "Mostrar", color = Color(0xFFFFC72C)) }
+            Column { Text("Lançamentos", color = ReisGold, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold); Text(filtered.size.toString() + " registros", color = Color.Gray) }
+            TextButton(onClick = { valuesVisible = !valuesVisible }) { Text(if (valuesVisible) "Ocultar" else "Mostrar", color = ReisGold) }
         }
-        OutlinedTextField(value = search, onValueChange = { search = it }, modifier = Modifier.fillMaxWidth().padding(top = 12.dp), label = { Text("Pesquisar lançamento") }, singleLine = true)
-        Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            filters.forEach { label -> FilterChip(selected = filter == label, onClick = { filter = label }, label = { Text(label) }) }
-        }
-        Row(Modifier.padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            listOf("Todos", "Hoje", "7 dias", "Este mês").forEach { label ->
-                FilterChip(selected = period == label, onClick = { period = label }, label = { Text(label) })
+        OutlinedTextField(value = search, onValueChange = { search = it }, modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp), label = { Text("Pesquisar por categoria ou descrição") }, singleLine = true)
+        Row(horizontalScroll = androidx.compose.foundation.rememberScrollState(), modifier = Modifier.fillMaxWidth()) {
+            listOf("Todos","Entradas","Saídas","Combustível","Mercado","Transporte","Alimentação").forEach { label ->
+                FilterChip(selected = filter == label, onClick = { filter = label }, label = { Text(label) }, modifier = Modifier.padding(end = 6.dp))
             }
         }
-        if (filtered.isEmpty()) Text("Nenhum lançamento encontrado.", color = Color.Gray)
+        Row(horizontalScroll = androidx.compose.foundation.rememberScrollState(), modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+            listOf("Todos","Hoje","7 dias","Este mês").forEach { label ->
+                FilterChip(selected = period == label, onClick = { period = label }, label = { Text(label) }, modifier = Modifier.padding(end = 6.dp))
+            }
+        }
+        if (filtered.isEmpty()) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Nenhum lançamento encontrado.", color = Color.Gray) }
         else LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) { items(filtered, key = { it.id }) { TransactionRow(it, onEdit, onDelete, valuesVisible) } }
     }
 }
@@ -187,31 +177,36 @@ fun HistoryScreen(transactions: List<Transaction>, onEdit: (Transaction) -> Unit
 fun ReportsScreen(transactions: List<Transaction>, income: Long, expense: Long, onExportBackup: () -> Unit, onImportBackup: () -> Unit) {
     var valuesVisible by remember { mutableStateOf(false) }
     val byCategory = transactions.filter { it.type == TransactionType.EXPENSE }.groupBy { it.category }
-        .mapValues { entry -> entry.value.sumOf { it.amountCents } }.toList().sortedByDescending { it.second }
-    Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        .mapValues { it.value.sumOf { tx -> tx.amountCents } }.toList().sortedByDescending { it.second }
+    val maxValue = byCategory.maxOfOrNull { it.second }?.coerceAtLeast(1L) ?: 1L
+    Column(Modifier.fillMaxSize().padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("Relatórios", style = MaterialTheme.typography.headlineSmall, color = Color(0xFFFFC72C), fontWeight = FontWeight.Bold)
-            TextButton(onClick = { valuesVisible = !valuesVisible }) { Text(if (valuesVisible) "Ocultar" else "Mostrar", color = Color(0xFFFFC72C)) }
+            Column { Text("Relatórios", color = ReisGold, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold); Text("Visão do seu dinheiro", color = Color.Gray) }
+            TextButton(onClick = { valuesVisible = !valuesVisible }) { Text(if (valuesVisible) "Ocultar" else "Mostrar", color = ReisGold) }
         }
-        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF17171A)), modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Resumo", color = Color.White, style = MaterialTheme.typography.titleMedium)
-                Text("Entradas: " + hiddenValue(income, valuesVisible), color = Color(0xFF18D66B))
-                Text("Saídas: " + hiddenValue(expense, valuesVisible), color = Color(0xFFFF6B6B))
-                Text("Movimentado: " + hiddenValue(income + expense, valuesVisible), color = Color.LightGray)
+        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF17171A)), shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Resumo geral", color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text("Entradas  " + hiddenValue(income, valuesVisible), color = Color(0xFF18D66B))
+                Text("Saídas    " + hiddenValue(expense, valuesVisible), color = Color(0xFFFF6B6B))
+                Text("Saldo     " + hiddenValue(income - expense, valuesVisible), color = Color.White, fontWeight = FontWeight.Bold)
+            }
+        }
+        Text("Gastos por categoria", color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        if (byCategory.isEmpty()) Text("Ainda não há despesas para analisar.", color = Color.Gray)
+        else byCategory.forEach { (category, value) ->
+            Column(Modifier.fillMaxWidth().background(Color(0xFF141417), RoundedCornerShape(14.dp)).padding(12.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(category, color = Color.White); Text(hiddenValue(value, valuesVisible), color = Color(0xFFFF6B6B)) }
+                if (valuesVisible) LinearProgressIndicator(progress = { value.toFloat()/maxValue.toFloat() }, modifier = Modifier.fillMaxWidth().padding(top=8.dp), color = ReisGold, trackColor = Color(0xFF303035))
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = onExportBackup, modifier = Modifier.weight(1f)) { Text("Exportar") }
+            Button(onClick = onExportBackup, modifier = Modifier.weight(1f)) { Text("Exportar backup") }
             OutlinedButton(onClick = onImportBackup, modifier = Modifier.weight(1f)) { Text("Restaurar") }
         }
-        Text("Gastos por categoria", color = Color.White, style = MaterialTheme.typography.titleMedium)
-        if (byCategory.isEmpty()) Text("Ainda não há despesas.", color = Color.Gray)
-        else byCategory.forEach { (category, value) -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(category, color = Color.White); Text(hiddenValue(value, valuesVisible), color = Color(0xFFFF6B6B)) } }
     }
 }
 
-@Composable
 fun TransactionRow(transaction: Transaction, onEdit: (Transaction) -> Unit, onDelete: (Transaction) -> Unit, valuesVisible: Boolean = false) {
     var confirm by remember { mutableStateOf(false) }
     val positive = transaction.type == TransactionType.INCOME
