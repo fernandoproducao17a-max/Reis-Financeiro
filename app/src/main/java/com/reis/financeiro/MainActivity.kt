@@ -13,6 +13,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.CreateDocument
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -20,6 +21,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.room.Room
 import androidx.room.withTransaction
@@ -107,22 +109,65 @@ class MainActivity : FragmentActivity() {
         var showPrivacy by remember { mutableStateOf(false) }
         if (!unlocked) { PrivacyLockScreen(onUnlock = { requestBiometricUnlock { unlocked = true } }); return }
         MaterialTheme(colorScheme = darkColorScheme(primary = Color(0xFFFFC72C), secondary = Color(0xFF18D66B), background = Color(0xFF0A0A0B), surface = Color(0xFF17171A))) {
-            Scaffold(
-                containerColor = Color(0xFF0A0A0B),
-                topBar = { TopAppBar(title = { Text("REIS", color = Color.White) }, actions = { TextButton(onClick = { showPrivacy = true }) { Text("Privacidade", color = Color(0xFFFFC72C)) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0A0A0B))) },
-                bottomBar = {
-                    NavigationBar(containerColor = Color(0xFF121214)) {
-                        val labels = listOf("⌂" to "Início", "☷" to "Lançamentos", "▥" to "Relatórios")
-                        labels.forEachIndexed { index, item -> NavigationBarItem(selected = tab == index, onClick = { tab = index }, icon = { Text(item.first) }, label = { Text(item.second) }) }
+            val drawerState = rememberDrawerState(DrawerValue.Closed)
+            ModalNavigationDrawer(
+                drawerState = drawerState,
+                drawerContent = {
+                    ModalDrawerSheet(drawerContainerColor = Color(0xFF111114), drawerContentColor = Color.White) {
+                        ReisDrawerHeader()
+                        HorizontalDivider(color = Color(0xFF29292D))
+                        ReisDrawerItem("⌂", "Início", tab == 0) { tab = 0; scope.launch { drawerState.close() } }
+                        ReisDrawerItem("☷", "Lançamentos", tab == 1) { tab = 1; scope.launch { drawerState.close() } }
+                        ReisDrawerItem("▥", "Relatórios", tab == 2) { tab = 2; scope.launch { drawerState.close() } }
+                        HorizontalDivider(color = Color(0xFF29292D), modifier = Modifier.padding(vertical = 8.dp))
+                        ReisDrawerItem("＋", "Novo lançamento", false) { editing = null; showForm = true; scope.launch { drawerState.close() } }
+                        ReisDrawerItem("🎙", "Lançar por voz", false) { scope.launch { drawerState.close() }; requestVoice() }
+                        ReisDrawerItem("🔒", "Privacidade e segurança", false) { showPrivacy = true; scope.launch { drawerState.close() } }
+                        ReisDrawerItem("◉", "Saldo inicial", false) { showInitial = true; scope.launch { drawerState.close() } }
+                        HorizontalDivider(color = Color(0xFF29292D), modifier = Modifier.padding(vertical = 8.dp))
+                        Text("DADOS", color = Color(0xFF88888F), style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp))
+                        ReisDrawerItem("⇧", "Exportar backup", false) { exportBackup.launch("reis-financeiro-backup.json"); scope.launch { drawerState.close() } }
+                        ReisDrawerItem("⇩", "Restaurar backup", false) { importBackup.launch(arrayOf("application/json", "text/json", "text/plain")); scope.launch { drawerState.close() } }
+                        Spacer(Modifier.weight(1f))
+                        Text("REIS FINANCEIRO • 1.1.0", color = Color(0xFF66666D), style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(20.dp))
                     }
-                },
-                floatingActionButton = { FloatingActionButton(onClick = { requestVoice() }, containerColor = Color(0xFFFFC72C), contentColor = Color.Black) { Text("🎙") } }
-            ) { padding ->
-                Box(Modifier.fillMaxSize().padding(padding)) {
-                    when (tab) {
-                        0 -> DashboardScreen(transactions, initial, income, expense, { showInitial = true }, { editing = null; showForm = true }, { editing = it; showForm = true }, { scope.launch { dao.delete(it) } })
-                        1 -> HistoryScreen(transactions, { editing = it; showForm = true }, { scope.launch { dao.delete(it) } })
-                        else -> ReportsScreen(transactions, income, expense, { exportBackup.launch("reis-financeiro-backup.json") }, { importBackup.launch(arrayOf("application/json", "text/json", "text/plain")) })
+                }
+            ) {
+                Scaffold(
+                    containerColor = Color(0xFF0A0A0B),
+                    topBar = {
+                        TopAppBar(
+                            navigationIcon = { IconButton(onClick = { scope.launch { drawerState.open() } }) { Text("☰", color = Color.White, style = MaterialTheme.typography.titleLarge) } },
+                            title = {
+                                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                    Image(painter = painterResource(com.reis.financeiro.R.drawable.ic_reis_logo), contentDescription = "REIS", modifier = Modifier.size(34.dp))
+                                    Spacer(Modifier.width(10.dp))
+                                    Column {
+                                        Text("REIS", color = Color.White, fontWeight = FontWeight.Bold)
+                                        Text("FINANCEIRO", color = Color(0xFFFFC72C), style = MaterialTheme.typography.labelSmall)
+                                    }
+                                }
+                            },
+                            actions = { IconButton(onClick = { showPrivacy = true }) { Text("🔒", color = Color(0xFFFFC72C)) } },
+                            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0A0A0B))
+                        )
+                    },
+                    bottomBar = {
+                        NavigationBar(containerColor = Color(0xFF121214)) {
+                            val labels = listOf("⌂" to "Início", "☷" to "Lançamentos", "▥" to "Relatórios")
+                            labels.forEachIndexed { index, item -> NavigationBarItem(selected = tab == index, onClick = { tab = index }, icon = { Text(item.first) }, label = { Text(item.second) }) }
+                        }
+                    },
+                    floatingActionButton = {
+                        ExtendedFloatingActionButton(onClick = { requestVoice() }, icon = { Text("🎙") }, text = { Text("Lançar por voz", fontWeight = FontWeight.Bold) }, containerColor = Color(0xFFFFC72C), contentColor = Color.Black)
+                    }
+                ) { padding ->
+                    Box(Modifier.fillMaxSize().padding(padding)) {
+                        when (tab) {
+                            0 -> DashboardScreen(transactions, initial, income, expense, { showInitial = true }, { editing = null; showForm = true }, { editing = it; showForm = true }, { scope.launch { dao.delete(it) } })
+                            1 -> HistoryScreen(transactions, { editing = it; showForm = true }, { scope.launch { dao.delete(it) } })
+                            else -> ReportsScreen(transactions, income, expense, { exportBackup.launch("reis-financeiro-backup.json") }, { importBackup.launch(arrayOf("application/json", "text/json", "text/plain")) })
+                        }
                     }
                 }
             }
@@ -150,12 +195,23 @@ class MainActivity : FragmentActivity() {
     }
 
     private fun startVoiceInput() {
-        if (!SpeechRecognizer.isRecognitionAvailable(this)) { Toast.makeText(this, "Reconhecimento de voz indisponível.", Toast.LENGTH_LONG).show(); return }
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, "Permissão do microfone não concedida.", Toast.LENGTH_LONG).show()
+            audioPermission.launch(Manifest.permission.RECORD_AUDIO)
+            return
+        }
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+            Toast.makeText(this, "O reconhecimento de voz não está disponível neste aparelho.", Toast.LENGTH_LONG).show()
+            return
+        }
         val recognizer = SpeechRecognizer.createSpeechRecognizer(this)
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, "pt-BR")
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "pt-BR")
             putExtra(RecognizerIntent.EXTRA_PROMPT, "Fale sua entrada ou saída")
+            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
         }
         recognizer.setRecognitionListener(object : android.speech.RecognitionListener {
             override fun onResults(results: Bundle?) {
@@ -165,7 +221,21 @@ class MainActivity : FragmentActivity() {
                 else { CoroutineScope(Dispatchers.IO).launch { database.transactionDao().insert(parsed.transaction) }; Toast.makeText(this@MainActivity, "Registrado: " + parsed.confirmationText, Toast.LENGTH_LONG).show() }
                 recognizer.destroy()
             }
-            override fun onError(error: Int) { Toast.makeText(this@MainActivity, "Não consegui ouvir. Tente novamente.", Toast.LENGTH_SHORT).show(); recognizer.destroy() }
+            override fun onError(error: Int) {
+                val message = when (error) {
+                    SpeechRecognizer.ERROR_AUDIO -> "Erro ao acessar o áudio. Verifique o microfone."
+                    SpeechRecognizer.ERROR_CLIENT -> "O reconhecimento foi interrompido. Tente novamente."
+                    SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "O REIS não tem permissão para usar o microfone."
+                    SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "O serviço de voz está sem conexão."
+                    SpeechRecognizer.ERROR_NO_MATCH -> "Não consegui entender. Fale o valor e o tipo de lançamento."
+                    SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "O serviço de voz está ocupado. Aguarde e tente novamente."
+                    SpeechRecognizer.ERROR_SERVER -> "O serviço de reconhecimento de voz apresentou uma falha."
+                    SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Não detectei fala. Toque no microfone e fale em seguida."
+                    else -> "Falha no reconhecimento de voz. Código: $error."
+                }
+                Toast.makeText(this@MainActivity, message, Toast.LENGTH_LONG).show()
+                recognizer.destroy()
+            }
             override fun onReadyForSpeech(params: Bundle?) {}
             override fun onBeginningOfSpeech() {}
             override fun onRmsChanged(rmsdB: Float) {}
