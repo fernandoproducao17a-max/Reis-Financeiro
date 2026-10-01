@@ -67,6 +67,25 @@ fun ReisDrawerItem(icon: String, label: String, selected: Boolean, onClick: () -
 }
 
 @Composable
+private fun FinanceMetricCard(
+    title: String,
+    value: Long,
+    accent: Color,
+    visible: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF17171A)),
+        shape = RoundedCornerShape(20.dp)
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Text(title, color = Color.Gray, style = MaterialTheme.typography.labelMedium)
+            Text(hiddenValue(value, visible), color = accent, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
+        }
+    }
+}
+
 @Composable
 fun DashboardScreen(
     transactions: List<Transaction>, initial: Long, income: Long, expense: Long,
@@ -208,6 +227,7 @@ fun ReportsScreen(transactions: List<Transaction>, income: Long, expense: Long, 
     }
 }
 
+@Composable
 fun TransactionRow(transaction: Transaction, onEdit: (Transaction) -> Unit, onDelete: (Transaction) -> Unit, valuesVisible: Boolean = false) {
     var confirm by remember { mutableStateOf(false) }
     val positive = transaction.type == TransactionType.INCOME
