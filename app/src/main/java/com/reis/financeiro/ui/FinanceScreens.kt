@@ -5,12 +5,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.Image
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.reis.financeiro.data.*
 import com.reis.financeiro.util.toBrl
@@ -22,6 +24,46 @@ import java.util.Locale
 
 private val ReisGold = Color(0xFFFFC72C)
 private fun hiddenValue(value: Long, visible: Boolean): String = if (visible) value.toBrl() else "••••••"
+
+
+@Composable
+fun ReisDrawerHeader() {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(22.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Image(
+                painter = painterResource(com.reis.financeiro.R.drawable.ic_reis_logo),
+                contentDescription = "Logo REIS",
+                modifier = Modifier.size(62.dp)
+            )
+            Spacer(Modifier.width(14.dp))
+            Column {
+                Text("REIS", color = Color.White, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
+                Text("FINANCEIRO", color = ReisGold, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+            }
+        }
+        Text("Controle suas entradas e saídas com rapidez, privacidade e voz.", color = Color(0xFF9B9BA3), style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+@Composable
+fun ReisDrawerItem(icon: String, label: String, selected: Boolean, onClick: () -> Unit) {
+    NavigationDrawerItem(
+        label = { Text(label, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal) },
+        icon = { Text(icon, color = if (selected) ReisGold else Color.LightGray) },
+        selected = selected,
+        onClick = onClick,
+        modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp),
+        colors = NavigationDrawerItemDefaults.colors(
+            selectedContainerColor = Color(0xFF2A2515),
+            selectedTextColor = Color.White,
+            unselectedTextColor = Color(0xFFE5E5E8),
+            unselectedIconColor = Color.LightGray
+        )
+    )
+}
 
 @Composable
 fun DashboardScreen(
