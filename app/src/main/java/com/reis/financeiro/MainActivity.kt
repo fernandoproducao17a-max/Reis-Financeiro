@@ -38,6 +38,7 @@ import com.reis.financeiro.ui.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private val MIGRATION_2_3 = object : Migration(2, 3) { override fun migrate(database: SupportSQLiteDatabase) { database.execSQL("ALTER TABLE finance_settings ADD COLUMN appLockEnabled INTEGER NOT NULL DEFAULT 0") } }
 
@@ -268,21 +269,47 @@ class MainActivity : FragmentActivity() {
         recognizer.setRecognitionListener(object : android.speech.RecognitionListener {
             private fun finish() {
                 if (speechRecognizer === recognizer) speechRecognizer = null
-                recognizer.destroy()
+                runCatching { recognizer.cancel() }
+                runCatching { recognizer.destroy() }
             }
             override fun onReadyForSpeech(params: Bundle?) {
                 Toast.makeText(this@MainActivity, "🎙️ Ouvindo… fale o lançamento.", Toast.LENGTH_SHORT).show()
             }
             override fun onResults(results: Bundle?) {
-                val spoken = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
-                val parsed = spoken?.let { com.reis.financeiro.voice.VoiceCommandParser.parse(it) }
-                if (parsed == null) {
-                    Toast.makeText(this@MainActivity, "Não entendi. Exemplo: Gastei 100 reais de combustível.", Toast.LENGTH_LONG).show()
-                } else {
-                    CoroutineScope(Dispatchers.IO).launch { database.transactionDao().insert(parsed.transaction) }
-                    Toast.makeText(this@MainActivity, "✓ ${parsed.confirmationText}", Toast.LENGTH_LONG).show()
+                try {
+                    val spoken = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
+                    val parsed = try {
+                        spoken?.let { com.reis.financeiro.voice.VoiceCommandParser.parse(it) }
+                    } catch (_: Exception) {
+                        null
+                    }
+                    if (parsed == null) {
+                        Toast.makeText(this@MainActivity, "Não entendi. Exemplo: Gastei 100 reais de combustível.", Toast.LENGTH_LONG).show()
+                    } else {
+                        val transaction = parsed.transaction
+                        val confirmation = parsed.confirmationText
+                        CoroutineScope(Dispatchers.IO).launch {
+                            try {
+                                database.transactionDao().insert(transaction)
+                                withContext(Dispatchers.Main) {
+                                    if (!isFinishing && !isDestroyed) {
+                                        Toast.makeText(this@MainActivity, "✓ $confirmation", Toast.LENGTH_LONG).show()
+                                    }
+                                }
+                            } catch (_: Exception) {
+                                withContext(Dispatchers.Main) {
+                                    if (!isFinishing && !isDestroyed) {
+                                        Toast.makeText(this@MainActivity, "Não foi possível salvar o lançamento. Tente novamente.", Toast.LENGTH_LONG).show()
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (_: Exception) {
+                    Toast.makeText(this@MainActivity, "Ocorreu um erro ao processar a fala. Tente novamente ou use Novo lançamento.", Toast.LENGTH_LONG).show()
+                } finally {
+                    finish()
                 }
-                finish()
             }
             override fun onError(error: Int) {
                 val message = when (error) {
@@ -296,7 +323,9 @@ class MainActivity : FragmentActivity() {
                     SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Não detectei fala. Toque no microfone e fale logo depois."
                     else -> "Falha no reconhecimento de voz. Código: $error."
                 }
-                Toast.makeText(this@MainActivity, message, Toast.LENGTH_LONG).show()
+                if (!isFinishing && !isDestroyed) {
+                    Toast.makeText(this@MainActivity, message, Toast.LENGTH_LONG).show()
+                }
                 finish()
             }
             override fun onBeginningOfSpeech() {}
@@ -309,9 +338,12 @@ class MainActivity : FragmentActivity() {
         try {
             recognizer.startListening(intent)
         } catch (_: Exception) {
-            speechRecognizer = null
-            recognizer.destroy()
-            Toast.makeText(this, "Não foi possível iniciar a escuta do microfone.", Toast.LENGTH_LONG).show()
+            if (speechRecognizer === recognizer) speechRecognizer = null
+            runCatching { recognizer.cancel() }
+            runCatching { recognizer.destroy() }
+            if (!isFinishing && !isDestroyed) {
+                Toast.makeText(this, "Não foi possível iniciar a escuta. Verifique a permissão do microfone e o serviço de voz do Android.", Toast.LENGTH_LONG).show()
+            }
         }
     }
 }
