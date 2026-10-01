@@ -75,7 +75,7 @@ fun HistoryScreen(transactions: List<Transaction>, onEdit: (Transaction) -> Unit
 }
 
 @Composable
-fun ReportsScreen(transactions: List<Transaction>, income: Long, expense: Long, onExportBackup: () -> Unit) {
+fun ReportsScreen(transactions: List<Transaction>, income: Long, expense: Long, onExportBackup: () -> Unit, onImportBackup: () -> Unit) {
     val byCategory = transactions.filter { it.type == TransactionType.EXPENSE }.groupBy { it.category }
         .mapValues { entry -> entry.value.sumOf { it.amountCents } }.toList().sortedByDescending { it.second }
     Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -88,7 +88,10 @@ fun ReportsScreen(transactions: List<Transaction>, income: Long, expense: Long, 
                 Text("Movimentado: " + (income + expense).toBrl(), color = Color.LightGray)
             }
         }
-        Button(onClick = onExportBackup, modifier = Modifier.fillMaxWidth()) { Text("Exportar backup") }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = onExportBackup, modifier = Modifier.weight(1f)) { Text("Exportar") }
+            OutlinedButton(onClick = onImportBackup, modifier = Modifier.weight(1f)) { Text("Restaurar") }
+        }
         Text("Gastos por categoria", color = Color.White, style = MaterialTheme.typography.titleMedium)
         if (byCategory.isEmpty()) Text("Ainda não há despesas.", color = Color.Gray)
         else byCategory.forEach { (category, value) -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(category, color = Color.White); Text(value.toBrl(), color = Color(0xFFFF6B6B)) } }
