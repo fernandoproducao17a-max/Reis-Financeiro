@@ -10,7 +10,6 @@ import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.widget.Toast
 import androidx.fragment.app.FragmentActivity
-import android.app.Activity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.CreateDocument
@@ -51,7 +50,7 @@ private val MIGRATION_1_2 = object : Migration(1, 2) {
 class MainActivity : FragmentActivity() {
     private lateinit var database: ReisDatabase
     private var speechRecognizer: SpeechRecognizer? = null
-    private var appLocked = false
+    private var appLocked by mutableStateOf(false)
     private var shouldRelock = false
     private val audioPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { if (it) startVoiceInput() }
     private var pendingRestoreUri by mutableStateOf<android.net.Uri?>(null)
