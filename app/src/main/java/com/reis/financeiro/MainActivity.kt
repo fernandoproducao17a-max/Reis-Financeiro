@@ -97,11 +97,11 @@ class MainActivity : ComponentActivity() {
         var tab by remember { mutableIntStateOf(0) }
         var showInitial by remember { mutableStateOf(false) }
         var showForm by remember { mutableStateOf(false) }
-        var editing by remember { mutableStateOf<Transaction?>(null) }
+        var editing by remember { mutableStateOf<Transaction?>(null) }\n        var showPrivacy by remember { mutableStateOf(false) }
         if (!unlocked) { PrivacyLockScreen(onUnlock = { requestBiometricUnlock { unlocked = true } }); return }\n        MaterialTheme(colorScheme = darkColorScheme(primary = Color(0xFFFFC72C), secondary = Color(0xFF18D66B), background = Color(0xFF0A0A0B), surface = Color(0xFF17171A))) {
             Scaffold(
                 containerColor = Color(0xFF0A0A0B),
-                topBar = { TopAppBar(title = { Text("REIS", color = Color.White) }, actions = { Text("Financeiro", color = Color(0xFFFFC72C), modifier = Modifier.padding(end = 16.dp)) }, colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0A0A0B))) },
+                topBar = { TopAppBar(title = { Text("REIS", color = Color.White) }, actions = { TextButton(onClick = { showPrivacy = true }) { Text("Privacidade", color = Color(0xFFFFC72C)) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0A0A0B))) },
                 bottomBar = {
                     NavigationBar(containerColor = Color(0xFF121214)) {
                         val labels = listOf("⌂" to "Início", "☷" to "Lançamentos", "▥" to "Relatórios")
@@ -118,7 +118,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
-            if (showInitial) InitialBalanceDialog(initial, { showInitial = false }) { value -> scope.launch { settingsDao.save(FinanceSettings(initialBalanceCents = value)) }; showInitial = false }
+            if (showPrivacy) PrivacySettingsDialog(settings?.appLockEnabled == true, { showPrivacy = false }) { enabled -> scope.launch { settingsDao.save(FinanceSettings(initialBalanceCents = initial, appLockEnabled = enabled)) } }\n            if (showInitial) InitialBalanceDialog(initial, { showInitial = false }) { value -> scope.launch { settingsDao.save(FinanceSettings(initialBalanceCents = value)) }; showInitial = false }
             if (showForm) TransactionDialog(editing, { showForm = false }) { transaction -> scope.launch { if (transaction.id == 0L) dao.insert(transaction) else dao.update(transaction) }; showForm = false }
         }
     }
