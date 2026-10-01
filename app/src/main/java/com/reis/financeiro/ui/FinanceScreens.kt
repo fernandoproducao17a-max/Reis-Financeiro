@@ -18,6 +18,9 @@ import java.util.Date
 import java.util.Calendar
 import java.util.Locale
 
+private val ReisGold = Color(0xFFFFC72C)
+private fun hiddenValue(value: Long, visible: Boolean): String = if (visible) value.toBrl() else "••••••"
+
 @Composable
 fun DashboardScreen(
     transactions: List<Transaction>,
