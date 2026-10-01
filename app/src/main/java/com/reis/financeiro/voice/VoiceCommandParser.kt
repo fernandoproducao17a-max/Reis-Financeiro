@@ -48,7 +48,9 @@ object VoiceCommandParser {
             normalized.contains("internet") -> "Internet"
             normalized.contains("farmácia") || normalized.contains("farmacia") || normalized.contains("remédio") || normalized.contains("remedio") -> "Saúde"
             normalized.contains("escola") || normalized.contains("curso") -> "Educação"
-            normalized.contains("restaurante") || normalized.contains("comida") || normalized.contains("lanche") -> "Alimentação"\n            normalized.contains("uber") || normalized.contains("ônibus") || normalized.contains("onibus") || normalized.contains("transporte") -> "Transporte"\n            normalized.contains("cinema") || normalized.contains("jogo") || normalized.contains("lazer") -> "Lazer"
+            normalized.contains("restaurante") || normalized.contains("comida") || normalized.contains("lanche") -> "Alimentação"
+            normalized.contains("uber") || normalized.contains("ônibus") || normalized.contains("onibus") || normalized.contains("transporte") -> "Transporte"
+            normalized.contains("cinema") || normalized.contains("jogo") || normalized.contains("lazer") -> "Lazer"
             else -> "Outros"
         }
 
