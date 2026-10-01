@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.room.Room
+import androidx.room.withTransaction
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.reis.financeiro.data.*
@@ -43,7 +44,7 @@ class MainActivity : ComponentActivity() {
                     val json = contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
                         ?: throw IllegalStateException("Arquivo vazio")
                     val backup = parseBackup(json)
-                    database.runInTransaction {
+                    database.withTransaction {
                         database.transactionDao().deleteAll()
                         backup.transactions.forEach { database.transactionDao().insert(it) }
                         database.settingsDao().save(FinanceSettings(initialBalanceCents = backup.initialBalanceCents))
