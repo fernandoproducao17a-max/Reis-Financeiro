@@ -28,7 +28,7 @@ object VoiceCommandParser {
 
         val income = listOf("recebi", "ganhei", "entrou", "salário", "salario", "renda", "caiu")
             .any { normalized.contains(it) }
-        val expense = listOf("gastei", "paguei", "comprei", "saí", "sai", "despesa", "gasto")
+        val expense = listOf("gastei", "paguei", "comprei", "saí", "sai", "despesa", "gasto", "transferi", "enviei", "pix")
             .any { normalized.contains(it) }
 
         val type = when {
@@ -48,7 +48,7 @@ object VoiceCommandParser {
             normalized.contains("internet") -> "Internet"
             normalized.contains("farmácia") || normalized.contains("farmacia") || normalized.contains("remédio") || normalized.contains("remedio") -> "Saúde"
             normalized.contains("escola") || normalized.contains("curso") -> "Educação"
-            normalized.contains("restaurante") || normalized.contains("comida") || normalized.contains("lanche") -> "Alimentação"
+            normalized.contains("restaurante") || normalized.contains("comida") || normalized.contains("lanche") -> "Alimentação"\n            normalized.contains("uber") || normalized.contains("ônibus") || normalized.contains("onibus") || normalized.contains("transporte") -> "Transporte"\n            normalized.contains("cinema") || normalized.contains("jogo") || normalized.contains("lazer") -> "Lazer"
             else -> "Outros"
         }
 
