@@ -1,6 +1,9 @@
 package com.reis.financeiro
 
 import android.Manifest
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
+import androidx.core.content.ContextCompat
 import android.content.Intent
 import android.os.Bundle
 import android.speech.RecognizerIntent
@@ -28,7 +31,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-private val MIGRATION_1_2 = object : Migration(1, 2) {
+private val MIGRATION_2_3 = object : Migration(2, 3) { override fun migrate(database: SupportSQLiteDatabase) { database.execSQL("ALTER TABLE finance_settings ADD COLUMN appLockEnabled INTEGER NOT NULL DEFAULT 0") } }\n\nprivate val MIGRATION_1_2 = object : Migration(1, 2) {
     override fun migrate(database: SupportSQLiteDatabase) {
         database.execSQL("CREATE TABLE IF NOT EXISTS finance_settings (id INTEGER NOT NULL PRIMARY KEY, initialBalanceCents INTEGER NOT NULL)")
     }
@@ -73,7 +76,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        database = Room.databaseBuilder(applicationContext, ReisDatabase::class.java, "reis-financeiro.db").addMigrations(MIGRATION_1_2).build()
+        database = Room.databaseBuilder(applicationContext, ReisDatabase::class.java, "reis-financeiro.db").addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
         setContent { ReisApp(database) }
         if (intent.getStringExtra("reis_action") == "novo_lancamento") {
             window.decorView.post { requestVoice() }
@@ -86,7 +89,7 @@ class MainActivity : ComponentActivity() {
         val dao = database.transactionDao()
         val settingsDao = database.settingsDao()
         val transactions by dao.observeAll().collectAsState(initial = emptyList())
-        val settings by settingsDao.observe().collectAsState(initial = null)
+        val settings by settingsDao.observe().collectAsState(initial = null)\n        var unlocked by remember { mutableStateOf(false) }\n        LaunchedEffect(settings?.appLockEnabled) {\n            if (settings?.appLockEnabled == true) requestBiometricUnlock { unlocked = true } else unlocked = true\n        }
         val initial = settings?.initialBalanceCents ?: 0L
         val income = transactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amountCents }
         val expense = transactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amountCents }
@@ -95,7 +98,7 @@ class MainActivity : ComponentActivity() {
         var showInitial by remember { mutableStateOf(false) }
         var showForm by remember { mutableStateOf(false) }
         var editing by remember { mutableStateOf<Transaction?>(null) }
-        MaterialTheme(colorScheme = darkColorScheme(primary = Color(0xFFFFC72C), secondary = Color(0xFF18D66B), background = Color(0xFF0A0A0B), surface = Color(0xFF17171A))) {
+        if (!unlocked) { PrivacyLockScreen(onUnlock = { requestBiometricUnlock { unlocked = true } }); return }\n        MaterialTheme(colorScheme = darkColorScheme(primary = Color(0xFFFFC72C), secondary = Color(0xFF18D66B), background = Color(0xFF0A0A0B), surface = Color(0xFF17171A))) {
             Scaffold(
                 containerColor = Color(0xFF0A0A0B),
                 topBar = { TopAppBar(title = { Text("REIS", color = Color.White) }, actions = { Text("Financeiro", color = Color(0xFFFFC72C), modifier = Modifier.padding(end = 16.dp)) }, colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0A0A0B))) },
