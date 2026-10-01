@@ -54,22 +54,27 @@ class MainActivity : FragmentActivity() {
     private var appLocked = false
     private var shouldRelock = false
     private val audioPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { if (it) startVoiceInput() }
+    private var pendingRestoreUri by mutableStateOf<android.net.Uri?>(null)
+
     private val importBackup = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) {
-            CoroutineScope(Dispatchers.IO).launch {
-                try {
-                    val json = contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
-                        ?: throw IllegalStateException("Arquivo vazio")
-                    val backup = parseBackup(json)
-                    database.withTransaction {
-                        database.transactionDao().deleteAll()
-                        backup.transactions.forEach { database.transactionDao().insert(it) }
-                        database.settingsDao().save(FinanceSettings(initialBalanceCents = backup.initialBalanceCents, appLockEnabled = database.settingsDao().get()?.appLockEnabled ?: false))
-                    }
-                    runOnUiThread { Toast.makeText(this@MainActivity, "Backup restaurado: ${backup.transactions.size} lançamentos.", Toast.LENGTH_LONG).show() }
-                } catch (_: Exception) {
-                    runOnUiThread { Toast.makeText(this@MainActivity, "Backup inválido ou não foi possível restaurar.", Toast.LENGTH_LONG).show() }
+        if (uri != null) pendingRestoreUri = uri
+    }
+
+    private fun restoreBackup(uri: android.net.Uri) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val json = contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
+                    ?: throw IllegalStateException("Arquivo vazio")
+                val backup = parseBackup(json)
+                database.withTransaction {
+                    database.transactionDao().deleteAll()
+                    backup.transactions.forEach { database.transactionDao().insert(it) }
+                    val currentLock = database.settingsDao().get()?.appLockEnabled ?: false
+                    database.settingsDao().save(FinanceSettings(initialBalanceCents = backup.initialBalanceCents, appLockEnabled = currentLock))
                 }
+                runOnUiThread { pendingRestoreUri = null; Toast.makeText(this@MainActivity, "Backup restaurado: ${backup.transactions.size} lançamentos.", Toast.LENGTH_LONG).show() }
+            } catch (_: Exception) {
+                runOnUiThread { Toast.makeText(this@MainActivity, "Backup inválido ou não foi possível restaurar.", Toast.LENGTH_LONG).show() }
             }
         }
     }
@@ -182,6 +187,15 @@ class MainActivity : FragmentActivity() {
                         }
                     }
                 }
+            }
+            pendingRestoreUri?.let { uri ->
+                AlertDialog(
+                    onDismissRequest = { pendingRestoreUri = null },
+                    title = { Text("Restaurar backup?") },
+                    text = { Text("A restauração substituirá os lançamentos atuais pelos dados do backup. O bloqueio de privacidade será preservado.") },
+                    confirmButton = { TextButton(onClick = { restoreBackup(uri) }) { Text("Restaurar") } },
+                    dismissButton = { TextButton(onClick = { pendingRestoreUri = null }) { Text("Cancelar") } }
+                )
             }
             if (showPrivacy) PrivacySettingsDialog(settings?.appLockEnabled == true, { showPrivacy = false }) { enabled -> scope.launch { settingsDao.save(FinanceSettings(initialBalanceCents = initial, appLockEnabled = enabled)) } }
             if (showInitial) InitialBalanceDialog(initial, { showInitial = false }) { value -> scope.launch { settingsDao.save(FinanceSettings(initialBalanceCents = value, appLockEnabled = settings?.appLockEnabled == true)) }; showInitial = false }
