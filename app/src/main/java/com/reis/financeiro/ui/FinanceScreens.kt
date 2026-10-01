@@ -171,3 +171,45 @@ fun InitialBalanceDialog(currentCents: Long, onDismiss: () -> Unit, onSave: (Lon
     var value by remember { mutableStateOf(if (currentCents == 0L) "" else "%.2f".format(currentCents / 100.0)) }
     AlertDialog(onDismissRequest = onDismiss, title = { Text("Valor inicial") }, text = { OutlinedTextField(value = value, onValueChange = { value = it }, label = { Text("Com quanto você começou?") }, prefix = { Text("R$ ") }, singleLine = true) }, confirmButton = { TextButton(onClick = { value.toCentsOrNull()?.takeIf { it >= 0 }?.let(onSave) }) { Text("Salvar") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } })
 }
+
+@Composable
+fun PrivacyLockScreen(onUnlock: () -> Unit) {
+    Column(
+        Modifier.fillMaxSize().background(Color(0xFF08090B)).padding(28.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text("REIS", color = Color.White, style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.ExtraBold)
+        Text("FINANCEIRO", color = ReisGold, style = MaterialTheme.typography.labelLarge)
+        Spacer(Modifier.height(22.dp))
+        Text("Conteúdo protegido", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text("Use sua biometria ou o bloqueio do aparelho para entrar.", color = Color.Gray)
+        Spacer(Modifier.height(18.dp))
+        Button(onClick = onUnlock, shape = RoundedCornerShape(16.dp)) { Text("Desbloquear") }
+    }
+}
+
+@Composable
+fun PrivacySettingsDialog(
+    enabled: Boolean,
+    onDismiss: () -> Unit,
+    onSave: (Boolean) -> Unit
+) {
+    var checked by remember(enabled) { mutableStateOf(enabled) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Privacidade") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("Proteja o REIS com a biometria ou o bloqueio de tela do aparelho.")
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("Bloquear ao abrir")
+                    Switch(checked = checked, onCheckedChange = { checked = it })
+                }
+                Text("Os valores financeiros continuam ocultos por padrão.", color = Color.Gray, style = MaterialTheme.typography.bodySmall)
+            }
+        },
+        confirmButton = { TextButton(onClick = { onSave(checked); onDismiss() }) { Text("Salvar") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
+    )
+}
