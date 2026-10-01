@@ -49,6 +49,7 @@ private val MIGRATION_1_2 = object : Migration(1, 2) {
 
 class MainActivity : FragmentActivity() {
     private lateinit var database: ReisDatabase
+    private var speechRecognizer: SpeechRecognizer? = null
     private val audioPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { if (it) startVoiceInput() }
     private val importBackup = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
@@ -195,54 +196,84 @@ class MainActivity : FragmentActivity() {
         } else onSuccess()
     }
 
+    override fun onDestroy() {
+        speechRecognizer?.cancel()
+        speechRecognizer?.destroy()
+        speechRecognizer = null
+        database.close()
+        super.onDestroy()
+    }
+
     private fun requestVoice() {
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED) startVoiceInput()
         else audioPermission.launch(Manifest.permission.RECORD_AUDIO)
     }
 
     private fun startVoiceInput() {
+        if (speechRecognizer != null) {
+            Toast.makeText(this, "O REIS já está ouvindo. Fale agora.", Toast.LENGTH_SHORT).show()
+            return
+        }
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
             Toast.makeText(this, "Permissão do microfone não concedida.", Toast.LENGTH_LONG).show()
             audioPermission.launch(Manifest.permission.RECORD_AUDIO)
             return
         }
         if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-            Toast.makeText(this, "O reconhecimento de voz não está disponível neste aparelho.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "O reconhecimento de voz não está disponível neste aparelho. Verifique o serviço de voz do Android.", Toast.LENGTH_LONG).show()
             return
         }
-        val recognizer = SpeechRecognizer.createSpeechRecognizer(this)
+        val recognizer = try {
+            SpeechRecognizer.createSpeechRecognizer(this)
+        } catch (_: Exception) {
+            Toast.makeText(this, "Não foi possível iniciar o microfone. Tente novamente.", Toast.LENGTH_LONG).show()
+            return
+        }
+        speechRecognizer = recognizer
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, "pt-BR")
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "pt-BR")
-            putExtra(RecognizerIntent.EXTRA_PROMPT, "Fale sua entrada ou saída")
-            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+            putExtra(RecognizerIntent.EXTRA_PROMPT, "Ex.: Gastei 100 reais de combustível")
+            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1200L)
         }
         recognizer.setRecognitionListener(object : android.speech.RecognitionListener {
+            private fun finish() {
+                if (speechRecognizer === recognizer) speechRecognizer = null
+                recognizer.destroy()
+            }
+            override fun onReadyForSpeech(params: Bundle?) {
+                Toast.makeText(this@MainActivity, "🎙️ Ouvindo… fale o lançamento.", Toast.LENGTH_SHORT).show()
+            }
             override fun onResults(results: Bundle?) {
                 val spoken = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
                 val parsed = spoken?.let { com.reis.financeiro.voice.VoiceCommandParser.parse(it) }
-                if (parsed == null) Toast.makeText(this@MainActivity, "Não entendi. Exemplo: Gastei 100 reais de combustível.", Toast.LENGTH_LONG).show()
-                else { CoroutineScope(Dispatchers.IO).launch { database.transactionDao().insert(parsed.transaction) }; Toast.makeText(this@MainActivity, "Registrado: " + parsed.confirmationText, Toast.LENGTH_LONG).show() }
-                recognizer.destroy()
+                if (parsed == null) {
+                    Toast.makeText(this@MainActivity, "Não entendi. Exemplo: Gastei 100 reais de combustível.", Toast.LENGTH_LONG).show()
+                } else {
+                    CoroutineScope(Dispatchers.IO).launch { database.transactionDao().insert(parsed.transaction) }
+                    Toast.makeText(this@MainActivity, "✓ ${parsed.confirmationText}", Toast.LENGTH_LONG).show()
+                }
+                finish()
             }
             override fun onError(error: Int) {
                 val message = when (error) {
-                    SpeechRecognizer.ERROR_AUDIO -> "Erro ao acessar o áudio. Verifique o microfone."
-                    SpeechRecognizer.ERROR_CLIENT -> "O reconhecimento foi interrompido. Tente novamente."
+                    SpeechRecognizer.ERROR_AUDIO -> "Erro no áudio. Verifique se o microfone está funcionando e se outro app está usando-o."
+                    SpeechRecognizer.ERROR_CLIENT -> "O reconhecimento foi interrompido. Toque no microfone e tente novamente."
                     SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "O REIS não tem permissão para usar o microfone."
-                    SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "O serviço de voz está sem conexão."
-                    SpeechRecognizer.ERROR_NO_MATCH -> "Não consegui entender. Fale o valor e o tipo de lançamento."
-                    SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "O serviço de voz está ocupado. Aguarde e tente novamente."
-                    SpeechRecognizer.ERROR_SERVER -> "O serviço de reconhecimento de voz apresentou uma falha."
-                    SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Não detectei fala. Toque no microfone e fale em seguida."
+                    SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "O serviço de voz está sem conexão. Verifique a internet."
+                    SpeechRecognizer.ERROR_NO_MATCH -> "Não consegui entender. Diga o valor e o tipo, por exemplo: paguei 50 reais de Uber."
+                    SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "O serviço de voz está ocupado. Aguarde alguns segundos e tente novamente."
+                    SpeechRecognizer.ERROR_SERVER -> "O serviço de reconhecimento de voz apresentou uma falha. Tente novamente."
+                    SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Não detectei fala. Toque no microfone e fale logo depois."
                     else -> "Falha no reconhecimento de voz. Código: $error."
                 }
                 Toast.makeText(this@MainActivity, message, Toast.LENGTH_LONG).show()
-                recognizer.destroy()
+                finish()
             }
-            override fun onReadyForSpeech(params: Bundle?) {}
             override fun onBeginningOfSpeech() {}
             override fun onRmsChanged(rmsdB: Float) {}
             override fun onBufferReceived(buffer: ByteArray?) {}
@@ -250,6 +281,13 @@ class MainActivity : FragmentActivity() {
             override fun onPartialResults(partialResults: Bundle?) {}
             override fun onEvent(eventType: Int, params: Bundle?) {}
         })
-        recognizer.startListening(intent)
+        try {
+            recognizer.startListening(intent)
+        } catch (_: Exception) {
+            speechRecognizer = null
+            recognizer.destroy()
+            Toast.makeText(this, "Não foi possível iniciar a escuta do microfone.", Toast.LENGTH_LONG).show()
+        }
+    }
     }
 }
