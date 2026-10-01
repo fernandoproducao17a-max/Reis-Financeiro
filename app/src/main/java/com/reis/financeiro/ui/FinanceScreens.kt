@@ -30,6 +30,7 @@ fun DashboardScreen(
     onDelete: (Transaction) -> Unit
 ) {
     val balance = initial + income - expense
+    var valuesVisible by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text("REIS FINANCEIRO", style = MaterialTheme.typography.headlineMedium, color = Color(0xFFFFC72C), fontWeight = FontWeight.Bold)
         Text("Sua vida financeira na sua voz", color = Color.LightGray)
@@ -39,12 +40,15 @@ fun DashboardScreen(
                     Text("Saldo atual", color = Color.LightGray)
                     TextButton(onClick = onInitial) { Text("Valor inicial") }
                 }
-                Text(balance.toBrl(), style = MaterialTheme.typography.displaySmall, color = Color.White, fontWeight = FontWeight.Bold)
-                Text("Inicial: " + initial.toBrl(), color = Color.Gray)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text(hiddenValue(balance, valuesVisible), style = MaterialTheme.typography.displaySmall, color = Color.White, fontWeight = FontWeight.Bold)
+                    TextButton(onClick = { valuesVisible = !valuesVisible }) { Text(if (valuesVisible) "Ocultar" else "Mostrar", color = ReisGold) }
+                }
+                Text("Inicial: " + hiddenValue(initial, valuesVisible), color = Color.Gray)
                 Spacer(Modifier.height(12.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("↑ " + income.toBrl(), color = Color(0xFF18D66B))
-                    Text("↓ " + expense.toBrl(), color = Color(0xFFFF6B6B))
+                    Text("↑ " + hiddenValue(income, valuesVisible), color = Color(0xFF18D66B))
+                    Text("↓ " + hiddenValue(expense, valuesVisible), color = Color(0xFFFF6B6B))
                 }
             }
         }
@@ -52,13 +56,14 @@ fun DashboardScreen(
         Text("Últimos lançamentos", color = Color.White, style = MaterialTheme.typography.titleMedium)
         if (transactions.isEmpty()) Text("Nenhum lançamento ainda. Use o microfone ou adicione manualmente.", color = Color.Gray)
         else LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            items(transactions.take(8), key = { it.id }) { TransactionRow(it, onEdit, onDelete) }
+            items(transactions.take(8), key = { it.id }) { TransactionRow(it, onEdit, onDelete, valuesVisible) }
         }
     }
 }
 
 @Composable
 fun HistoryScreen(transactions: List<Transaction>, onEdit: (Transaction) -> Unit, onDelete: (Transaction) -> Unit) {
+    var valuesVisible by remember { mutableStateOf(false) }
     var filter by remember { mutableStateOf("Todos") }
     var period by remember { mutableStateOf("Todos") }
     val filters = listOf("Todos", "Entradas", "Saídas", "Combustível", "Mercado", "Moradia")
@@ -74,7 +79,10 @@ fun HistoryScreen(transactions: List<Transaction>, onEdit: (Transaction) -> Unit
         typeMatches && it.createdAt >= periodStart
     }
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Lançamentos", style = MaterialTheme.typography.headlineSmall, color = Color(0xFFFFC72C), fontWeight = FontWeight.Bold)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("Lançamentos", style = MaterialTheme.typography.headlineSmall, color = Color(0xFFFFC72C), fontWeight = FontWeight.Bold)
+            TextButton(onClick = { valuesVisible = !valuesVisible }) { Text(if (valuesVisible) "Ocultar" else "Mostrar", color = Color(0xFFFFC72C)) }
+        }
         Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             filters.forEach { label -> FilterChip(selected = filter == label, onClick = { filter = label }, label = { Text(label) }) }
         }
@@ -84,22 +92,26 @@ fun HistoryScreen(transactions: List<Transaction>, onEdit: (Transaction) -> Unit
             }
         }
         if (filtered.isEmpty()) Text("Nenhum lançamento encontrado.", color = Color.Gray)
-        else LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) { items(filtered, key = { it.id }) { TransactionRow(it, onEdit, onDelete) } }
+        else LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) { items(filtered, key = { it.id }) { TransactionRow(it, onEdit, onDelete, valuesVisible) } }
     }
 }
 
 @Composable
 fun ReportsScreen(transactions: List<Transaction>, income: Long, expense: Long, onExportBackup: () -> Unit, onImportBackup: () -> Unit) {
+    var valuesVisible by remember { mutableStateOf(false) }
     val byCategory = transactions.filter { it.type == TransactionType.EXPENSE }.groupBy { it.category }
         .mapValues { entry -> entry.value.sumOf { it.amountCents } }.toList().sortedByDescending { it.second }
     Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Text("Relatórios", style = MaterialTheme.typography.headlineSmall, color = Color(0xFFFFC72C), fontWeight = FontWeight.Bold)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("Relatórios", style = MaterialTheme.typography.headlineSmall, color = Color(0xFFFFC72C), fontWeight = FontWeight.Bold)
+            TextButton(onClick = { valuesVisible = !valuesVisible }) { Text(if (valuesVisible) "Ocultar" else "Mostrar", color = Color(0xFFFFC72C)) }
+        }
         Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF17171A)), modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Resumo", color = Color.White, style = MaterialTheme.typography.titleMedium)
-                Text("Entradas: " + income.toBrl(), color = Color(0xFF18D66B))
-                Text("Saídas: " + expense.toBrl(), color = Color(0xFFFF6B6B))
-                Text("Movimentado: " + (income + expense).toBrl(), color = Color.LightGray)
+                Text("Entradas: " + hiddenValue(income, valuesVisible), color = Color(0xFF18D66B))
+                Text("Saídas: " + hiddenValue(expense, valuesVisible), color = Color(0xFFFF6B6B))
+                Text("Movimentado: " + hiddenValue(income + expense, valuesVisible), color = Color.LightGray)
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -108,12 +120,12 @@ fun ReportsScreen(transactions: List<Transaction>, income: Long, expense: Long, 
         }
         Text("Gastos por categoria", color = Color.White, style = MaterialTheme.typography.titleMedium)
         if (byCategory.isEmpty()) Text("Ainda não há despesas.", color = Color.Gray)
-        else byCategory.forEach { (category, value) -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(category, color = Color.White); Text(value.toBrl(), color = Color(0xFFFF6B6B)) } }
+        else byCategory.forEach { (category, value) -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(category, color = Color.White); Text(hiddenValue(value, valuesVisible), color = Color(0xFFFF6B6B)) } }
     }
 }
 
 @Composable
-fun TransactionRow(transaction: Transaction, onEdit: (Transaction) -> Unit, onDelete: (Transaction) -> Unit) {
+fun TransactionRow(transaction: Transaction, onEdit: (Transaction) -> Unit, onDelete: (Transaction) -> Unit, valuesVisible: Boolean = false) {
     var confirm by remember { mutableStateOf(false) }
     val positive = transaction.type == TransactionType.INCOME
     Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF17171A)), modifier = Modifier.fillMaxWidth()) {
@@ -124,7 +136,7 @@ fun TransactionRow(transaction: Transaction, onEdit: (Transaction) -> Unit, onDe
                 Text(SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("pt", "BR")).format(Date(transaction.createdAt)), color = Color.DarkGray)
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text((if (positive) "+ " else "- ") + transaction.amountCents.toBrl(), color = if (positive) Color(0xFF18D66B) else Color(0xFFFF6B6B))
+                Text((if (positive) "+ " else "- ") + hiddenValue(transaction.amountCents, valuesVisible), color = if (positive) Color(0xFF18D66B) else Color(0xFFFF6B6B))
                 Row { TextButton(onClick = { onEdit(transaction) }) { Text("Editar") }; TextButton(onClick = { confirm = true }) { Text("Excluir", color = Color(0xFFFF6B6B)) } }
             }
         }
