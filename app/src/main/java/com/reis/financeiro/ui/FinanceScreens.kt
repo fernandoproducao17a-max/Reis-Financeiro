@@ -3,6 +3,7 @@ package com.reis.financeiro.ui
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.background
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -89,13 +90,17 @@ private fun FinanceMetricCard(
 @Composable
 fun DashboardScreen(
     transactions: List<Transaction>, initial: Long, income: Long, expense: Long,
-    onInitial: () -> Unit, onNew: () -> Unit, onEdit: (Transaction) -> Unit, onDelete: (Transaction) -> Unit
+    onInitial: () -> Unit, onNew: () -> Unit, onEdit: (Transaction) -> Unit, onDelete: (Transaction) -> Unit,
+    onVoice: () -> Unit
 ) {
     val balance = initial + income - expense
     var valuesVisible by remember { mutableStateOf(false) }
     val byCategory = transactions.filter { it.type == TransactionType.EXPENSE }.groupBy { it.category }
         .mapValues { it.value.sumOf { tx -> tx.amountCents } }.toList().sortedByDescending { it.second }.take(5)
-    Column(Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
         Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF151519)), shape = RoundedCornerShape(26.dp), modifier = Modifier.fillMaxWidth()) {
             Row(Modifier.fillMaxWidth().padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
                 Image(painterResource(com.reis.financeiro.R.drawable.ic_reis_logo), "REIS", Modifier.size(68.dp))
@@ -126,6 +131,14 @@ fun DashboardScreen(
             Button(onClick = onNew, modifier = Modifier.weight(1f), shape = RoundedCornerShape(16.dp)) { Text("＋ Novo") }
             OutlinedButton(onClick = onInitial, modifier = Modifier.weight(1f), shape = RoundedCornerShape(16.dp)) { Text("Saldo inicial") }
         }
+        Button(
+            onClick = onVoice,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = ReisGold, contentColor = Color.Black)
+        ) {
+            Text("🎙  Lançar por voz", fontWeight = FontWeight.Bold)
+        }
         if (byCategory.isNotEmpty()) {
             Text("Onde seu dinheiro está saindo", color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             val maxValue = byCategory.maxOf { it.second }.coerceAtLeast(1L)
@@ -148,8 +161,10 @@ fun DashboardScreen(
                     Text("Use o botão de voz ou o menu para registrar uma entrada ou saída.", color = Color.Gray)
                 }
             }
-        } else LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
-            items(transactions.take(6), key = { it.id }) { TransactionRow(it, onEdit, onDelete, valuesVisible) }
+        } else {
+            transactions.take(6).forEach { transaction ->
+                TransactionRow(transaction, onEdit, onDelete, valuesVisible)
+            }
         }
     }
 }
