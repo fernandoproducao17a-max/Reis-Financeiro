@@ -15,6 +15,7 @@ import com.reis.financeiro.util.toBrl
 import com.reis.financeiro.util.toCentsOrNull
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Calendar
 import java.util.Locale
 
 @Composable
@@ -59,15 +60,28 @@ fun DashboardScreen(
 @Composable
 fun HistoryScreen(transactions: List<Transaction>, onEdit: (Transaction) -> Unit, onDelete: (Transaction) -> Unit) {
     var filter by remember { mutableStateOf("Todos") }
+    var period by remember { mutableStateOf("Todos") }
     val filters = listOf("Todos", "Entradas", "Saídas", "Combustível", "Mercado", "Moradia")
+    val periodStart = when (period) {
+        "Hoje" -> Calendar.getInstance().apply { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }.timeInMillis
+        "7 dias" -> System.currentTimeMillis() - 7L * 24 * 60 * 60 * 1000
+        "Este mês" -> Calendar.getInstance().apply { set(Calendar.DAY_OF_MONTH, 1); set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }.timeInMillis
+        else -> 0L
+    }
     val filtered = transactions.filter {
-        filter == "Todos" || (filter == "Entradas" && it.type == TransactionType.INCOME) ||
-        (filter == "Saídas" && it.type == TransactionType.EXPENSE) || it.category == filter
+        val typeMatches = filter == "Todos" || (filter == "Entradas" && it.type == TransactionType.INCOME) ||
+            (filter == "Saídas" && it.type == TransactionType.EXPENSE) || it.category == filter
+        typeMatches && it.createdAt >= periodStart
     }
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Text("Lançamentos", style = MaterialTheme.typography.headlineSmall, color = Color(0xFFFFC72C), fontWeight = FontWeight.Bold)
-        Row(Modifier.padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             filters.forEach { label -> FilterChip(selected = filter == label, onClick = { filter = label }, label = { Text(label) }) }
+        }
+        Row(Modifier.padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf("Todos", "Hoje", "7 dias", "Este mês").forEach { label ->
+                FilterChip(selected = period == label, onClick = { period = label }, label = { Text(label) })
+            }
         }
         if (filtered.isEmpty()) Text("Nenhum lançamento encontrado.", color = Color.Gray)
         else LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) { items(filtered, key = { it.id }) { TransactionRow(it, onEdit, onDelete) } }
