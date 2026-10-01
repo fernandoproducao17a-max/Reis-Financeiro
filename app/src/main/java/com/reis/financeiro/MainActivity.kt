@@ -123,7 +123,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun requestVoice() {
+    private fun requestBiometricUnlock(onSuccess: () -> Unit) {\n        val manager = BiometricManager.from(this)\n        if (manager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.DEVICE_CREDENTIAL) == BiometricManager.BIOMETRIC_SUCCESS) {\n            val executor = ContextCompat.getMainExecutor(this)\n            val prompt = BiometricPrompt(this, executor, object : BiometricPrompt.AuthenticationCallback() {\n                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) { onSuccess() }\n            })\n            val info = BiometricPrompt.PromptInfo.Builder().setTitle("REIS protegido").setSubtitle("Confirme sua identidade para acessar suas finanças").setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.DEVICE_CREDENTIAL).build()\n            prompt.authenticate(info)\n        } else onSuccess()\n    }\n\n    private fun requestVoice() {
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED) startVoiceInput()
         else audioPermission.launch(Manifest.permission.RECORD_AUDIO)
     }
