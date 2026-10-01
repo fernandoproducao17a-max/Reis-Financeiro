@@ -267,9 +267,11 @@ class MainActivity : FragmentActivity() {
             putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1200L)
         }
         recognizer.setRecognitionListener(object : android.speech.RecognitionListener {
+            private var finished = false
             private fun finish() {
+                if (finished) return
+                finished = true
                 if (speechRecognizer === recognizer) speechRecognizer = null
-                runCatching { recognizer.cancel() }
                 runCatching { recognizer.destroy() }
             }
             override fun onReadyForSpeech(params: Bundle?) {
