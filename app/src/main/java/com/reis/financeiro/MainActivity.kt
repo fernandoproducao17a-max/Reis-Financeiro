@@ -10,6 +10,7 @@ import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.widget.Toast
 import androidx.fragment.app.FragmentActivity
+import android.app.Activity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.CreateDocument
@@ -50,6 +51,7 @@ private val MIGRATION_1_2 = object : Migration(1, 2) {
 class MainActivity : FragmentActivity() {
     private lateinit var database: ReisDatabase
     private var speechRecognizer: SpeechRecognizer? = null
+    private var appLocked = false
     private val audioPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { if (it) startVoiceInput() }
     private val importBackup = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
@@ -102,8 +104,9 @@ class MainActivity : FragmentActivity() {
         val transactions by dao.observeAll().collectAsState(initial = emptyList())
         val settings by settingsDao.observe().collectAsState(initial = null)
         var unlocked by remember { mutableStateOf(false) }
-        LaunchedEffect(settings?.appLockEnabled) {
-            if (settings?.appLockEnabled == true) requestBiometricUnlock { unlocked = true } else unlocked = true
+        LaunchedEffect(appLocked) { if (appLocked && settings?.appLockEnabled == true) unlocked = false }
+        LaunchedEffect(settings?.appLockEnabled, appLocked) {
+            if (settings?.appLockEnabled == true && (!unlocked || appLocked)) requestBiometricUnlock { appLocked = false; unlocked = true } else if (settings?.appLockEnabled != true) unlocked = true
         }
         val initial = settings?.initialBalanceCents ?: 0L
         val income = transactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amountCents }
@@ -194,6 +197,14 @@ class MainActivity : FragmentActivity() {
             val info = BiometricPrompt.PromptInfo.Builder().setTitle("REIS protegido").setSubtitle("Confirme sua identidade para acessar suas finanças").setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.DEVICE_CREDENTIAL).build()
             prompt.authenticate(info)
         } else onSuccess()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if (::database.isInitialized) {
+            val enabled = database.settingsDao().getSyncLockEnabled()
+            if (enabled) appLocked = true
+        }
     }
 
     override fun onDestroy() {
