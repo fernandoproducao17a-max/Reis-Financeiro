@@ -289,4 +289,4 @@ class MainActivity : FragmentActivity() {
             Toast.makeText(this, "Não foi possível iniciar a escuta do microfone.", Toast.LENGTH_LONG).show()
         }
     }
- 
+}
