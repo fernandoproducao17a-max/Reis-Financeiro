@@ -52,6 +52,7 @@ class MainActivity : FragmentActivity() {
     private lateinit var database: ReisDatabase
     private var speechRecognizer: SpeechRecognizer? = null
     private var appLocked = false
+    private var shouldRelock = false
     private val audioPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { if (it) startVoiceInput() }
     private val importBackup = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
@@ -106,6 +107,7 @@ class MainActivity : FragmentActivity() {
         var unlocked by remember { mutableStateOf(false) }
         LaunchedEffect(appLocked) { if (appLocked && settings?.appLockEnabled == true) unlocked = false }
         LaunchedEffect(settings?.appLockEnabled, appLocked) {
+            shouldRelock = settings?.appLockEnabled == true
             if (settings?.appLockEnabled == true && (!unlocked || appLocked)) requestBiometricUnlock { appLocked = false; unlocked = true } else if (settings?.appLockEnabled != true) unlocked = true
         }
         val initial = settings?.initialBalanceCents ?: 0L
@@ -202,8 +204,7 @@ class MainActivity : FragmentActivity() {
     override fun onStop() {
         super.onStop()
         if (::database.isInitialized) {
-            val enabled = database.settingsDao().getSyncLockEnabled()
-            if (enabled) appLocked = true
+            if (shouldRelock) appLocked = true
         }
     }
 
