@@ -297,3 +297,26 @@ fun PrivacySettingsDialog(
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
     )
 }
+
+
+@Composable
+fun CategoryListDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Categorias") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                DefaultCategories.all.forEach { category ->
+                    Row(
+                        Modifier.fillMaxWidth().background(Color(0xFF17171A), RoundedCornerShape(12.dp)).padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(category.emoji, modifier = Modifier.width(34.dp))
+                        Text(category.name, color = Color.White)
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Fechar") } }
+    )
+}
