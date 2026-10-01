@@ -39,3 +39,13 @@ class VoiceCommandParserTest {
         assertEquals("Energia", result.transaction.category)
     }
 }
+
+
+@Test
+fun parsesPixExpenseAndTransportCategory() {
+    val parsed = VoiceCommandParser.parse("Paguei 35 reais de Uber")
+    assertNotNull(parsed)
+    assertEquals(TransactionType.EXPENSE, parsed!!.transaction.type)
+    assertEquals(3500L, parsed.transaction.amountCents)
+    assertEquals("Transporte", parsed.transaction.category)
+}
