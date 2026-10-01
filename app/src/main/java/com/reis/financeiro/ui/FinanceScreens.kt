@@ -1,6 +1,7 @@
 package com.reis.financeiro.ui
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
@@ -158,12 +159,12 @@ fun HistoryScreen(transactions: List<Transaction>, onEdit: (Transaction) -> Unit
             TextButton(onClick = { valuesVisible = !valuesVisible }) { Text(if (valuesVisible) "Ocultar" else "Mostrar", color = ReisGold) }
         }
         OutlinedTextField(value = search, onValueChange = { search = it }, modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp), label = { Text("Pesquisar por categoria ou descrição") }, singleLine = true)
-        Row(horizontalScroll = androidx.compose.foundation.rememberScrollState(), modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth().horizontalScroll(androidx.compose.foundation.rememberScrollState())) {
             listOf("Todos","Entradas","Saídas","Combustível","Mercado","Transporte","Alimentação").forEach { label ->
                 FilterChip(selected = filter == label, onClick = { filter = label }, label = { Text(label) }, modifier = Modifier.padding(end = 6.dp))
             }
         }
-        Row(horizontalScroll = androidx.compose.foundation.rememberScrollState(), modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+        Row(modifier = Modifier.fillMaxWidth().horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(vertical = 8.dp)) {
             listOf("Todos","Hoje","7 dias","Este mês").forEach { label ->
                 FilterChip(selected = period == label, onClick = { period = label }, label = { Text(label) }, modifier = Modifier.padding(end = 6.dp))
             }
