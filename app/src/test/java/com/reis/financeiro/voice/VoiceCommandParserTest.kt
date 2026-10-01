@@ -49,3 +49,19 @@ fun parsesPixExpenseAndTransportCategory() {
     assertEquals(3500L, parsed.transaction.amountCents)
     assertEquals("Transporte", parsed.transaction.category)
 }
+
+
+@Test
+fun parsesPortugueseSpokenThousands() {
+    val parsed = VoiceCommandParser.parse("Recebi dois mil reais de salário")
+    assertNotNull(parsed)
+    assertEquals(200000L, parsed!!.transaction.amountCents)
+    assertEquals(TransactionType.INCOME, parsed.transaction.type)
+}
+
+@Test
+fun parsesOneThousandSpoken() {
+    val parsed = VoiceCommandParser.parse("Gastei mil reais de combustível")
+    assertNotNull(parsed)
+    assertEquals(100000L, parsed!!.transaction.amountCents)
+}
