@@ -160,7 +160,11 @@ fun TransactionDialog(existing: Transaction?, onDismiss: () -> Unit, onSave: (Tr
                 FilterChip(selected = type == TransactionType.INCOME, onClick = { type = TransactionType.INCOME }, label = { Text("Entrada") })
             }
             OutlinedTextField(value = amount, onValueChange = { amount = it }, label = { Text("Valor") }, prefix = { Text("R$ ") }, singleLine = true)
-            OutlinedTextField(value = category, onValueChange = { category = it }, label = { Text("Categoria") }, singleLine = true)\n            Text("Sugestões", style = MaterialTheme.typography.labelMedium, color = Color.Gray)\n            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {\n                DefaultCategories.all.take(6).forEach { item -> FilterChip(selected = category == item.name, onClick = { category = item.name }, label = { Text(item.emoji + " " + item.name) }) }\n            }
+            OutlinedTextField(value = category, onValueChange = { category = it }, label = { Text("Categoria") }, singleLine = true)
+            Text("Sugestões", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                DefaultCategories.all.take(6).forEach { item -> FilterChip(selected = category == item.name, onClick = { category = item.name }, label = { Text(item.emoji + " " + item.name) }) }
+            }
             OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Descrição") }, singleLine = true)
         }
     }, confirmButton = { TextButton(onClick = { amount.toCentsOrNull()?.takeIf { it > 0 }?.let { cents -> onSave(Transaction(existing?.id ?: 0L, type, cents, category.ifBlank { "Outros" }, description, existing?.createdAt ?: System.currentTimeMillis())) } }) { Text("Salvar") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } })
