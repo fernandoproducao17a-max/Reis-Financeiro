@@ -4,8 +4,8 @@
         android:shortcutId="novo_lancamento"
         android:enabled="true"
         android:icon="@drawable/ic_reis_logo"
-        android:shortcutShortLabel="Novo lançamento"
-        android:shortcutLongLabel="Registrar novo lançamento">
+        android:shortcutShortLabel="@string/shortcut_new"
+        android:shortcutLongLabel="@string/shortcut_new_long">
         <intent
             android:action="android.intent.action.VIEW"
             android:targetPackage="com.reis.financeiro"
