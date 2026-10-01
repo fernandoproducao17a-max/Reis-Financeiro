@@ -67,7 +67,8 @@ fun DashboardScreen(
 @Composable
 fun HistoryScreen(transactions: List<Transaction>, onEdit: (Transaction) -> Unit, onDelete: (Transaction) -> Unit) {
     var valuesVisible by remember { mutableStateOf(false) }
-    var search by remember { mutableStateOf("") }\n    var filter by remember { mutableStateOf("Todos") }
+    var search by remember { mutableStateOf("") }
+    var filter by remember { mutableStateOf("Todos") }
     var period by remember { mutableStateOf("Todos") }
     val filters = listOf("Todos", "Entradas", "Saídas", "Combustível", "Mercado", "Moradia")
     val periodStart = when (period) {
@@ -86,7 +87,8 @@ fun HistoryScreen(transactions: List<Transaction>, onEdit: (Transaction) -> Unit
             Text("Lançamentos", style = MaterialTheme.typography.headlineSmall, color = Color(0xFFFFC72C), fontWeight = FontWeight.Bold)
             TextButton(onClick = { valuesVisible = !valuesVisible }) { Text(if (valuesVisible) "Ocultar" else "Mostrar", color = Color(0xFFFFC72C)) }
         }
-        OutlinedTextField(value = search, onValueChange = { search = it }, modifier = Modifier.fillMaxWidth().padding(top = 12.dp), label = { Text("Pesquisar lançamento") }, singleLine = true)\n        Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        OutlinedTextField(value = search, onValueChange = { search = it }, modifier = Modifier.fillMaxWidth().padding(top = 12.dp), label = { Text("Pesquisar lançamento") }, singleLine = true)
+        Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             filters.forEach { label -> FilterChip(selected = filter == label, onClick = { filter = label }, label = { Text(label) }) }
         }
         Row(Modifier.padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
