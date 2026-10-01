@@ -124,6 +124,7 @@ class MainActivity : FragmentActivity() {
         var showForm by remember { mutableStateOf(false) }
         var editing by remember { mutableStateOf<Transaction?>(null) }
         var showPrivacy by remember { mutableStateOf(false) }
+        var showCategories by remember { mutableStateOf(false) }
         if (!unlocked) { PrivacyLockScreen(onUnlock = { requestBiometricUnlock { unlocked = true } }); return }
         MaterialTheme(colorScheme = darkColorScheme(primary = Color(0xFFFFC72C), secondary = Color(0xFF18D66B), background = Color(0xFF0A0A0B), surface = Color(0xFF17171A))) {
             val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -139,6 +140,7 @@ class MainActivity : FragmentActivity() {
                         HorizontalDivider(color = Color(0xFF29292D), modifier = Modifier.padding(vertical = 8.dp))
                         ReisDrawerItem("＋", "Novo lançamento", false) { editing = null; showForm = true; scope.launch { drawerState.close() } }
                         ReisDrawerItem("🎙", "Lançar por voz", false) { scope.launch { drawerState.close() }; requestVoice() }
+                        ReisDrawerItem("🏷", "Categorias", false) { showCategories = true; scope.launch { drawerState.close() } }
                         ReisDrawerItem("🔒", "Privacidade e segurança", false) { showPrivacy = true; scope.launch { drawerState.close() } }
                         ReisDrawerItem("◉", "Saldo inicial", false) { showInitial = true; scope.launch { drawerState.close() } }
                         HorizontalDivider(color = Color(0xFF29292D), modifier = Modifier.padding(vertical = 8.dp))
@@ -197,6 +199,7 @@ class MainActivity : FragmentActivity() {
                     dismissButton = { TextButton(onClick = { pendingRestoreUri = null }) { Text("Cancelar") } }
                 )
             }
+            if (showCategories) CategoryListDialog { showCategories = false }
             if (showPrivacy) PrivacySettingsDialog(settings?.appLockEnabled == true, { showPrivacy = false }) { enabled -> scope.launch { settingsDao.save(FinanceSettings(initialBalanceCents = initial, appLockEnabled = enabled)) } }
             if (showInitial) InitialBalanceDialog(initial, { showInitial = false }) { value -> scope.launch { settingsDao.save(FinanceSettings(initialBalanceCents = value, appLockEnabled = settings?.appLockEnabled == true)) }; showInitial = false }
             if (showForm) TransactionDialog(editing, { showForm = false }) { transaction -> scope.launch { if (transaction.id == 0L) dao.insert(transaction) else dao.update(transaction) }; showForm = false }
