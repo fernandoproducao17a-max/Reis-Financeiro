@@ -78,32 +78,70 @@ fun DashboardScreen(
 ) {
     val balance = initial + income - expense
     var valuesVisible by remember { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text("REIS FINANCEIRO", style = MaterialTheme.typography.headlineMedium, color = Color(0xFFFFC72C), fontWeight = FontWeight.Bold)
-        Text("Sua vida financeira na sua voz", color = Color.LightGray)
-        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF17171A)), modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(20.dp)) {
+    val byCategory = transactions.filter { it.type == TransactionType.EXPENSE }
+        .groupBy { it.category }
+        .mapValues { it.value.sumOf { tx -> tx.amountCents } }
+        .toList()
+        .sortedByDescending { it.second }
+        .take(4)
+
+    Column(Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Olá! 👋", color = Color.Gray, style = MaterialTheme.typography.bodyMedium)
+                Text("Visão geral", color = Color.White, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            }
+            Surface(shape = RoundedCornerShape(14.dp), color = Color(0xFF17171A)) {
+                Text("● Seguro", color = Color(0xFF18D66B), modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), style = MaterialTheme.typography.labelMedium)
+            }
+        }
+
+        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF17171A)), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp)) {
+            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("Saldo atual", color = Color.LightGray)
-                    TextButton(onClick = onInitial) { Text("Valor inicial") }
-                }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text(hiddenValue(balance, valuesVisible), style = MaterialTheme.typography.displaySmall, color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("Saldo disponível", color = Color.LightGray)
                     TextButton(onClick = { valuesVisible = !valuesVisible }) { Text(if (valuesVisible) "Ocultar" else "Mostrar", color = ReisGold) }
                 }
-                Text("Inicial: " + hiddenValue(initial, valuesVisible), color = Color.Gray)
-                Spacer(Modifier.height(12.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("↑ " + hiddenValue(income, valuesVisible), color = Color(0xFF18D66B))
-                    Text("↓ " + hiddenValue(expense, valuesVisible), color = Color(0xFFFF6B6B))
+                Text(hiddenValue(balance, valuesVisible), style = MaterialTheme.typography.displaySmall, color = Color.White, fontWeight = FontWeight.ExtraBold)
+                Text("Saldo inicial: " + hiddenValue(initial, valuesVisible), color = Color.Gray)
+            }
+        }
+
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            FinanceMetricCard("Entradas", income, Color(0xFF18D66B), valuesVisible, Modifier.weight(1f))
+            FinanceMetricCard("Saídas", expense, Color(0xFFFF6B6B), valuesVisible, Modifier.weight(1f))
+        }
+
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Button(onClick = onNew, modifier = Modifier.weight(1f), shape = RoundedCornerShape(16.dp)) { Text("＋ Lançamento") }
+            OutlinedButton(onClick = onInitial, modifier = Modifier.weight(1f), shape = RoundedCornerShape(16.dp)) { Text("Saldo inicial") }
+        }
+
+        if (byCategory.isNotEmpty()) {
+            Text("Maiores gastos", color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            byCategory.forEach { (category, value) ->
+                Row(Modifier.fillMaxWidth().background(Color(0xFF141417), RoundedCornerShape(14.dp)).padding(13.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(category, color = Color.White)
+                    Text(hiddenValue(value, valuesVisible), color = Color(0xFFFF6B6B), fontWeight = FontWeight.SemiBold)
                 }
             }
         }
-        Button(onClick = onNew, modifier = Modifier.fillMaxWidth()) { Text("＋ Novo lançamento") }
-        Text("Últimos lançamentos", color = Color.White, style = MaterialTheme.typography.titleMedium)
-        if (transactions.isEmpty()) Text("Nenhum lançamento ainda. Use o microfone ou adicione manualmente.", color = Color.Gray)
-        else LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+
+        Text("Últimos lançamentos", color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        if (transactions.isEmpty()) Text("Comece pelo microfone ou pelo botão de lançamento.", color = Color.Gray)
+        else LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
             items(transactions.take(8), key = { it.id }) { TransactionRow(it, onEdit, onDelete, valuesVisible) }
+        }
+    }
+}
+
+@Composable
+private fun FinanceMetricCard(title: String, value: Long, accent: Color, visible: Boolean, modifier: Modifier = Modifier) {
+    Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF17171A)), modifier = modifier, shape = RoundedCornerShape(18.dp)) {
+        Column(Modifier.padding(15.dp)) {
+            Text(title, color = Color.Gray, style = MaterialTheme.typography.labelMedium)
+            Spacer(Modifier.height(5.dp))
+            Text(hiddenValue(value, visible), color = accent, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
         }
     }
 }
